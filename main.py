@@ -64,62 +64,64 @@ class QlogStatsApp:
         stats_menu.add_command(label="QSOs nach Modes", command=self._show_mode_stats)
         stats_menu.add_command(label="QSOs nach Jahren", command=self._show_year_stats)
 
+        export_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Export", menu=export_menu)
+        export_menu.add_command(label="Als CSV exportieren", command=self._export_csv)
+        export_menu.add_command(label="Als TXT exportieren", command=self._export_txt)
+
         main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
+        main_frame.pack(fill=tk.BOTH, expand=True)
 
         filter_frame = ttk.LabelFrame(main_frame, text="Zeitbereich Filter", padding="5")
-        filter_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        filter_frame.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(filter_frame, text="Von:").grid(row=0, column=0, padx=(0, 5), sticky=tk.W)
+        ttk.Label(filter_frame, text="Von:").pack(side=tk.LEFT, padx=(0, 5))
         self.start_date_var = tk.StringVar()
         self.start_date_entry = ttk.Entry(filter_frame, textvariable=self.start_date_var, width=12)
-        self.start_date_entry.grid(row=0, column=1, padx=(0, 20))
+        self.start_date_entry.pack(side=tk.LEFT, padx=(0, 20))
 
-        ttk.Label(filter_frame, text="Bis:").grid(row=0, column=2, padx=(0, 5), sticky=tk.W)
+        ttk.Label(filter_frame, text="Bis:").pack(side=tk.LEFT, padx=(0, 5))
         self.end_date_var = tk.StringVar()
         self.end_date_entry = ttk.Entry(filter_frame, textvariable=self.end_date_var, width=12)
-        self.end_date_entry.grid(row=0, column=3, padx=(0, 20))
+        self.end_date_entry.pack(side=tk.LEFT, padx=(0, 20))
 
         self.apply_filter_btn = ttk.Button(filter_frame, text="Filter anwenden",
                                           command=self._apply_date_filter)
-        self.apply_filter_btn.grid(row=0, column=4, padx=(0, 20))
+        self.apply_filter_btn.pack(side=tk.LEFT, padx=(0, 10))
 
         self.reset_filter_btn = ttk.Button(filter_frame, text="Zurücksetzen",
                                           command=self._reset_date_filter)
-        self.reset_filter_btn.grid(row=0, column=5, padx=(0, 20))
+        self.reset_filter_btn.pack(side=tk.LEFT, padx=(0, 20))
 
         self.filter_info_label = ttk.Label(filter_frame, text="")
-        self.filter_info_label.grid(row=0, column=6, padx=(20, 0), sticky=tk.W)
+        self.filter_info_label.pack(side=tk.LEFT, padx=(20, 0))
 
-        content_frame = ttk.Frame(main_frame)
-        content_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-        main_frame.rowconfigure(1, weight=1)
-        content_frame.rowconfigure(0, weight=1)
-        content_frame.columnconfigure(0, weight=1)
-        content_frame.columnconfigure(1, weight=1)
+        paned_window = tk.PanedWindow(main_frame, orient=tk.HORIZONTAL, sashwidth=5,
+                                      sashrelief=tk.RAISED, bg='#cccccc')
+        paned_window.pack(fill=tk.BOTH, expand=True)
 
-        table_frame = ttk.LabelFrame(content_frame, text="Tabelle", padding="5")
-        table_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 5))
-        table_frame.rowconfigure(0, weight=1)
-        table_frame.columnconfigure(0, weight=1)
+        table_frame = ttk.LabelFrame(paned_window, text="Tabelle", padding="5")
+        paned_window.add(table_frame, minsize=300)
 
-        self.tree = ttk.Treeview(table_frame, show='tree headings')
-        self.tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        tree_scroll_frame = ttk.Frame(table_frame)
+        tree_scroll_frame.pack(fill=tk.BOTH, expand=True)
 
-        scrollbar_y = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        scrollbar_y.grid(row=0, column=1, sticky=(tk.N, tk.S))
-        self.tree.configure(yscrollcommand=scrollbar_y.set)
+        scrollbar_y = ttk.Scrollbar(tree_scroll_frame, orient=tk.VERTICAL)
+        scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
 
-        scrollbar_x = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
-        scrollbar_x.grid(row=1, column=0, sticky=(tk.W, tk.E))
-        self.tree.configure(xscrollcommand=scrollbar_x.set)
+        scrollbar_x = ttk.Scrollbar(tree_scroll_frame, orient=tk.HORIZONTAL)
+        scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.plot_frame = ttk.LabelFrame(content_frame, text="Diagramm", padding="5")
-        self.plot_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(5, 0))
-        self.plot_frame.rowconfigure(0, weight=1)
-        self.plot_frame.columnconfigure(0, weight=1)
+        self.tree = ttk.Treeview(tree_scroll_frame, show='tree headings',
+                                yscrollcommand=scrollbar_y.set,
+                                xscrollcommand=scrollbar_x.set)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar_y.config(command=self.tree.yview)
+        scrollbar_x.config(command=self.tree.xview)
+
+        self.plot_frame = ttk.LabelFrame(paned_window, text="Diagramm", padding="5")
+        paned_window.add(self.plot_frame, minsize=300)
 
         if MATPLOTLIB_AVAILABLE:
             self.figure = None
@@ -129,22 +131,7 @@ class QlogStatsApp:
             self._create_plot_canvas()
         else:
             no_plot_label = ttk.Label(self.plot_frame, text="matplotlib nicht verfügbar\nBitte installieren: pip install matplotlib")
-            no_plot_label.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
-
-        self.export_csv_btn = ttk.Button(button_frame, text="Export als CSV",
-                                         command=self._export_csv)
-        self.export_csv_btn.grid(row=0, column=0, padx=5)
-
-        self.export_txt_btn = ttk.Button(button_frame, text="Export als TXT",
-                                        command=self._export_txt)
-        self.export_txt_btn.grid(row=0, column=1, padx=5)
-
-        self.refresh_plot_btn = ttk.Button(button_frame, text="Diagramm aktualisieren",
-                                          command=self._update_plot)
-        self.refresh_plot_btn.grid(row=0, column=2, padx=5)
+            no_plot_label.pack(fill=tk.BOTH, expand=True)
 
         self.current_data = []
         self.current_stats_type = None
@@ -170,7 +157,8 @@ class QlogStatsApp:
             self.end_date_var.set(date_range['max_date'])
 
             self._update_filter_info()
-            self._show_country_stats()
+
+            self.root.after(200, self._show_country_stats)
 
         except Exception as e:
             messagebox.showerror("Fehler", f"Fehler beim Laden der Datenbank:\n{str(e)}")
@@ -397,15 +385,11 @@ class QlogStatsApp:
         frame_width = self.plot_frame.winfo_width()
         frame_height = self.plot_frame.winfo_height()
 
-        print(f"DEBUG: Frame Größe: {frame_width} x {frame_height}")
-
-        width = max(frame_width - 30, 400)
-        height = max(frame_height - 60, 300)
+        width = max(frame_width - 30, 200)
+        height = max(frame_height - 60, 200)
 
         width_inch = width / 100
         height_inch = height / 100
-
-        print(f"DEBUG: Figure Größe: {width_inch:.2f} x {height_inch:.2f} inches ({width}x{height} pixels)")
 
         if self.canvas_widget:
             self.canvas_widget.destroy()
@@ -414,7 +398,7 @@ class QlogStatsApp:
         self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.plot_frame)
         self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
     def _update_plot(self):
         """Aktualisiert das eingebettete Diagramm mit den aktuellen Daten"""

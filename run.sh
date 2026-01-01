@@ -2,10 +2,10 @@
 # Start-Skript für Qlog-Stats
 
 # Virtual Environment aktivieren
-source venv/bin/activate
+source .venv/bin/activate
 
 # Programm starten
-python main.py
+python3 main.py
 
 # Virtual Environment deaktivieren
 deactivate

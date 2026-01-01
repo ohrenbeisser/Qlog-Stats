@@ -21,10 +21,10 @@ Qlog-Stats ist ein Python-Programm zur Auswertung und Visualisierung von QSO-Dat
 
 1. Virtual Environment erstellen und aktivieren:
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/Mac
 # oder
-venv\Scripts\activate  # Windows
+.venv\Scripts\activate  # Windows
 ```
 
 2. Abhängigkeiten installieren:
