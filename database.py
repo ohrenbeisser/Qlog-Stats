@@ -262,6 +262,59 @@ class QlogDatabase:
             """
             return self.execute_query(query)
 
+    def get_special_callsigns(self, start_date: Optional[str] = None,
+                              end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit Sonderrufzeichen zurück
+
+        Sonderrufzeichen haben:
+        - Mehr als eine Zahl im Callsign
+        - DR-Präfix
+        - 0 als zweite Ziffer (z.B. DL0, DA0)
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+
+        Returns:
+            Liste mit QSOs von Sonderrufzeichen
+        """
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country,
+                dxcc
+            FROM contacts
+            WHERE callsign IS NOT NULL
+            AND callsign NOT LIKE '%/%'
+            AND (
+                (callsign LIKE 'DR%')
+                OR (callsign LIKE 'DL0%' OR callsign LIKE 'DA0%' OR callsign LIKE 'DF0%'
+                    OR callsign LIKE 'DK0%' OR callsign LIKE 'DO0%' OR callsign LIKE 'DB0%'
+                    OR callsign LIKE 'DC0%' OR callsign LIKE 'DD0%' OR callsign LIKE 'DE0%'
+                    OR callsign LIKE 'DG0%' OR callsign LIKE 'DH0%' OR callsign LIKE 'DJ0%'
+                    OR callsign LIKE 'DM0%' OR callsign LIKE 'DN0%' OR callsign LIKE 'DP0%')
+                OR (callsign GLOB 'D[LABFKOGCDEHJMNP][0-9][0-9]*')
+                OR (callsign GLOB 'D[LABFKOGCDEHJMNP][1-9][0-9]*[0-9]*')
+            )
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
     def get_database_info(self) -> Dict[str, Any]:
         """
         Gibt Informationen über die Datenbank zurück
