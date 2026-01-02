@@ -95,6 +95,7 @@ class QlogStatsApp:
             'show_callsign': self._show_callsign,
             'show_top_days': self._show_top_days,
             'show_flop_days': self._show_flop_days,
+            'show_search': self._show_search,
             'show_special': self._show_special,
             'export_csv': self._export_csv,
             'export_txt': self._export_txt,
@@ -129,6 +130,9 @@ class QlogStatsApp:
             self.main_window.get_paned_window(),
             self.export_handler
         )
+
+        # Such-Callback verbinden
+        self.date_filter.search_callback = self._perform_callsign_search
 
     def _init_database(self):
         """Initialisiert die Datenbankverbindung"""
@@ -183,6 +187,11 @@ class QlogStatsApp:
         if self.statistics:
             self.statistics.refresh_current()
 
+    def _perform_callsign_search(self):
+        """Führt die Rufzeichen-Suche aus"""
+        if self.statistics:
+            self.statistics.show_statistics('callsign_search')
+
     # Callback-Methoden für Menü-Aktionen
     # Diese delegieren an die entsprechenden Module
 
@@ -205,6 +214,12 @@ class QlogStatsApp:
         """Zeigt Jahr-Statistik an"""
         if self.statistics:
             self.statistics.show_statistics('year')
+
+    def _show_search(self):
+        """Zeigt Rufzeichen-Suche an"""
+        if self.date_filter:
+            # Suchzeile einblenden und Fokus setzen
+            self.date_filter.show_search_row()
 
     def _show_special(self):
         """Zeigt Sonderrufzeichen an"""

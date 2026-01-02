@@ -237,7 +237,12 @@ class Statistics:
             config = self.stat_configs[stat_type]
             filters = self.date_filter.get_filters()
 
-            # 2. Tabellen-Label setzen (z.B. "Tabelle" oder "Sonderrufzeichen")
+            # 2. Suchzeile ein-/ausblenden je nach Statistik-Typ
+            if stat_type != 'callsign_search':
+                # Bei allen anderen Statistiken: Suchzeile ausblenden
+                self.date_filter.hide_search_row()
+
+            # 3. Tabellen-Label setzen (z.B. "Tabelle" oder "Sonderrufzeichen")
             self.table_view.set_label(config['table_label'])
 
             # 3. Filter intelligent anpassen je nach Statistik-Typ
@@ -256,11 +261,26 @@ class Statistics:
             # 4. Daten aus Datenbank abrufen
             db_method = getattr(self.db, config['db_method'])
             params = {**config['db_params'], **filter_params}
-            data = db_method(**params)
 
-            # 4. Spezielle Datenaufbereitung für Sonderrufzeichen
+            # Spezialbehandlung für Rufzeichen-Suche
+            if stat_type == 'callsign_search':
+                search_params = self.date_filter.get_search_params()
+                if search_params:
+                    params['search_term'] = search_params['search_term']
+                    params['search_mode'] = search_params['search_mode']
+                else:
+                    # Keine Suchparameter - zeige leere Tabelle
+                    data = []
+                    db_method = None
+
+            if db_method:
+                data = db_method(**params)
+            else:
+                data = []
+
+            # 4. Spezielle Datenaufbereitung für Sonderrufzeichen und Suche
             # Füge 'Link' Text in QRZ-Spalte ein
-            if stat_type == 'special':
+            if stat_type == 'special' or stat_type == 'callsign_search':
                 for row in data:
                     row['qrz'] = 'Link'
 

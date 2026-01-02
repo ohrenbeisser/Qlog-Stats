@@ -92,26 +92,26 @@ class DateFilter:
         self.filter_info_label = ttk.Label(filter_frame, text="")
         self.filter_info_label.pack(side=tk.LEFT, padx=(20, 0))
 
-        # Dritte Zeile: Rufzeichen-Suche
-        search_frame = ttk.Frame(self.parent_frame)
-        search_frame.pack(fill=tk.X, pady=(5, 0))
+        # Dritte Zeile: Rufzeichen-Suche (initial unsichtbar)
+        self.search_frame = ttk.Frame(self.parent_frame)
+        # Nicht packen - wird erst bei Bedarf eingeblendet
 
-        ttk.Label(search_frame, text="Rufzeichen:").pack(side=tk.LEFT, padx=(0, 5))
-        self.callsign_search_entry = ttk.Entry(search_frame,
+        ttk.Label(self.search_frame, text="Rufzeichen:").pack(side=tk.LEFT, padx=(0, 5))
+        self.callsign_search_entry = ttk.Entry(self.search_frame,
                                                textvariable=self.callsign_search_var,
                                                width=15)
         self.callsign_search_entry.pack(side=tk.LEFT, padx=(0, 15))
 
-        ttk.Radiobutton(search_frame, text="Teilstring", variable=self.search_mode_var,
+        ttk.Radiobutton(self.search_frame, text="Teilstring", variable=self.search_mode_var,
                        value="partial").pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Radiobutton(search_frame, text="Exakt", variable=self.search_mode_var,
+        ttk.Radiobutton(self.search_frame, text="Exakt", variable=self.search_mode_var,
                        value="exact").pack(side=tk.LEFT, padx=(0, 15))
 
-        self.search_btn = ttk.Button(search_frame, text="Suchen",
+        self.search_btn = ttk.Button(self.search_frame, text="Suchen",
                                      command=self._perform_search)
         self.search_btn.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.clear_search_btn = ttk.Button(search_frame, text="Suche löschen",
+        self.clear_search_btn = ttk.Button(self.search_frame, text="Suche löschen",
                                            command=self._clear_search)
         self.clear_search_btn.pack(side=tk.LEFT)
 
@@ -261,3 +261,17 @@ class DateFilter:
             'search_term': search_term,
             'search_mode': self.search_mode_var.get()
         }
+
+    def show_search_row(self):
+        """Blendet die Rufzeichen-Suchzeile ein und setzt den Fokus"""
+        self.search_frame.pack(fill=tk.X, pady=(5, 0))
+        # Fokus auf das Eingabefeld setzen
+        self.callsign_search_entry.focus_set()
+
+    def hide_search_row(self):
+        """Blendet die Rufzeichen-Suchzeile aus"""
+        self.search_frame.pack_forget()
+
+    def is_search_row_visible(self):
+        """Prüft ob die Suchzeile sichtbar ist"""
+        return self.search_frame.winfo_ismapped()
