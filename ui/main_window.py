@@ -23,9 +23,16 @@ class MainWindow:
                 - 'show_band': Callback für Band-Statistik
                 - 'show_mode': Callback für Mode-Statistik
                 - 'show_year': Callback für Jahr-Statistik
-                - 'show_special': Callback für Sonderrufzeichen
+                - 'show_weekday': Callback für Wochentag-Statistik
+                - 'show_month': Callback für Monats-Statistik
+                - 'show_day': Callback für Monatstag-Statistik
+                - 'show_callsign': Callback für Rufzeichen-Statistik
+                - 'show_top_days': Callback für Top QSO-Tage
+                - 'show_flop_days': Callback für Flop QSO-Tage
+                - 'show_special': Callback für Spezialcallsign
                 - 'export_csv': Callback für CSV-Export
                 - 'export_txt': Callback für TXT-Export
+                - 'show_about': Callback für Über-Dialog
         """
         self.root = root
         self.callbacks = callbacks
@@ -60,8 +67,28 @@ class MainWindow:
                              command=self.callbacks.get('show_band'))
         stats_menu.add_command(label="QSOs nach Modes",
                              command=self.callbacks.get('show_mode'))
+        stats_menu.add_separator()
         stats_menu.add_command(label="QSOs nach Jahren",
                              command=self.callbacks.get('show_year'))
+        stats_menu.add_command(label="QSOs nach Wochentagen",
+                             command=self.callbacks.get('show_weekday'))
+        stats_menu.add_command(label="QSOs nach Monaten",
+                             command=self.callbacks.get('show_month'))
+        stats_menu.add_command(label="QSOs nach Monatstagen",
+                             command=self.callbacks.get('show_day'))
+        stats_menu.add_separator()
+        stats_menu.add_command(label="Top QSO-Tage",
+                             command=self.callbacks.get('show_top_days'))
+        stats_menu.add_command(label="Flop QSO-Tage",
+                             command=self.callbacks.get('show_flop_days'))
+        stats_menu.add_separator()
+        stats_menu.add_command(label="QSOs nach Rufzeichen",
+                             command=self.callbacks.get('show_callsign'))
+
+        callsign_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Rufzeichen", menu=callsign_menu)
+        callsign_menu.add_command(label="Spezialcallsign",
+                               command=self.callbacks.get('show_special'))
 
         export_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Export", menu=export_menu)
@@ -70,10 +97,10 @@ class MainWindow:
         export_menu.add_command(label="Als TXT exportieren",
                               command=self.callbacks.get('export_txt'))
 
-        special_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Sonderrufzeichen", menu=special_menu)
-        special_menu.add_command(label="Anzeigen",
-                               command=self.callbacks.get('show_special'))
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Hilfe", menu=help_menu)
+        help_menu.add_command(label="Über",
+                            command=self.callbacks.get('show_about'))
 
     def _create_layout(self):
         """Erstellt das Haupt-Layout"""

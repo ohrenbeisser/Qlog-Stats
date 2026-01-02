@@ -62,13 +62,18 @@ class QlogDatabase:
         results = [dict(row) for row in cursor.fetchall()]
         return results
 
-    def get_total_qsos(self, start_date: Optional[str] = None, end_date: Optional[str] = None) -> int:
+    def get_total_qsos(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                       band: Optional[str] = None, mode: Optional[str] = None,
+                       country: Optional[str] = None) -> int:
         """
         Gibt die Gesamtanzahl der QSOs zurück
 
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Anzahl der QSOs
@@ -82,6 +87,15 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
 
         result = self.execute_query(query, tuple(params))
         return result[0]['count'] if result else 0
@@ -110,7 +124,9 @@ class QlogDatabase:
 
     def get_qsos_by_country(self, limit: Optional[int] = None,
                            start_date: Optional[str] = None,
-                           end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+                           end_date: Optional[str] = None,
+                           band: Optional[str] = None,
+                           mode: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt QSOs gruppiert nach Land zurück
 
@@ -118,6 +134,8 @@ class QlogDatabase:
             limit: Maximale Anzahl der Ergebnisse (None = alle)
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
 
         Returns:
             Liste mit Ländern und QSO-Anzahl
@@ -135,6 +153,12 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
 
         query += " GROUP BY country ORDER BY count DESC"
 
@@ -144,13 +168,17 @@ class QlogDatabase:
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_band(self, start_date: Optional[str] = None,
-                        end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+                        end_date: Optional[str] = None,
+                        mode: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt QSOs gruppiert nach Band zurück
 
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Liste mit Bändern und QSO-Anzahl
@@ -168,19 +196,29 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
 
         query += " GROUP BY band ORDER BY count DESC"
 
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_mode(self, start_date: Optional[str] = None,
-                        end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+                        end_date: Optional[str] = None,
+                        band: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt QSOs gruppiert nach Mode zurück
 
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Liste mit Modes und QSO-Anzahl
@@ -198,19 +236,31 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
 
         query += " GROUP BY mode ORDER BY count DESC"
 
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_year(self, start_date: Optional[str] = None,
-                        end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+                        end_date: Optional[str] = None,
+                        band: Optional[str] = None,
+                        mode: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt QSOs gruppiert nach Jahr zurück
 
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Liste mit Jahren und QSO-Anzahl
@@ -228,42 +278,321 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
 
         query += " GROUP BY year ORDER BY year DESC"
 
         return self.execute_query(query, tuple(params))
 
-    def get_qsos_by_month(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_qsos_by_month(self, start_date: Optional[str] = None,
+                          end_date: Optional[str] = None,
+                          band: Optional[str] = None,
+                          mode: Optional[str] = None,
+                          country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt QSOs gruppiert nach Monat zurück
 
         Args:
-            year: Optionales Jahr zur Filterung
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Liste mit Monaten und QSO-Anzahl
         """
-        if year:
-            query = """
-                SELECT strftime('%Y-%m', start_time) as month, COUNT(*) as count
-                FROM contacts
-                WHERE start_time IS NOT NULL AND strftime('%Y', start_time) = ?
-                GROUP BY month
-                ORDER BY month
-            """
-            return self.execute_query(query, (str(year),))
-        else:
-            query = """
-                SELECT strftime('%Y-%m', start_time) as month, COUNT(*) as count
-                FROM contacts
-                WHERE start_time IS NOT NULL
-                GROUP BY month
-                ORDER BY month DESC
-            """
-            return self.execute_query(query)
+        query = """
+            SELECT strftime('%Y-%m', start_time) as month, COUNT(*) as count
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY month ORDER BY month DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsos_by_weekday(self, start_date: Optional[str] = None,
+                            end_date: Optional[str] = None,
+                            band: Optional[str] = None,
+                            mode: Optional[str] = None,
+                            country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt QSOs gruppiert nach Wochentag zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+
+        Returns:
+            Liste mit Wochentagen und QSO-Anzahl
+        """
+        query = """
+            SELECT
+                CASE CAST(strftime('%w', start_time) AS INTEGER)
+                    WHEN 0 THEN 'Sonntag'
+                    WHEN 1 THEN 'Montag'
+                    WHEN 2 THEN 'Dienstag'
+                    WHEN 3 THEN 'Mittwoch'
+                    WHEN 4 THEN 'Donnerstag'
+                    WHEN 5 THEN 'Freitag'
+                    WHEN 6 THEN 'Samstag'
+                END as weekday,
+                COUNT(*) as count,
+                CAST(strftime('%w', start_time) AS INTEGER) as day_num
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY day_num ORDER BY day_num"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsos_by_day(self, start_date: Optional[str] = None,
+                        end_date: Optional[str] = None,
+                        band: Optional[str] = None,
+                        mode: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt QSOs gruppiert nach Tag (des Monats) zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+
+        Returns:
+            Liste mit Tagen und QSO-Anzahl
+        """
+        query = """
+            SELECT CAST(strftime('%d', start_time) AS INTEGER) as day, COUNT(*) as count
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY day ORDER BY day"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_top_qso_days(self, start_date: Optional[str] = None,
+                         end_date: Optional[str] = None,
+                         band: Optional[str] = None,
+                         mode: Optional[str] = None,
+                         country: Optional[str] = None,
+                         limit: Optional[int] = 250) -> List[Dict[str, Any]]:
+        """
+        Gibt die Tage mit den meisten QSOs zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+            limit: Maximale Anzahl der Ergebnisse (Standard: 250)
+
+        Returns:
+            Liste mit Tagen (Datum) und QSO-Anzahl
+        """
+        query = """
+            SELECT DATE(start_time) as date, COUNT(*) as count
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY date ORDER BY count DESC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_flop_qso_days(self, start_date: Optional[str] = None,
+                          end_date: Optional[str] = None,
+                          band: Optional[str] = None,
+                          mode: Optional[str] = None,
+                          country: Optional[str] = None,
+                          limit: Optional[int] = 250) -> List[Dict[str, Any]]:
+        """
+        Gibt die Tage mit den wenigsten QSOs zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+            limit: Maximale Anzahl der Ergebnisse (Standard: 250)
+
+        Returns:
+            Liste mit Tagen (Datum) und QSO-Anzahl
+        """
+        query = """
+            SELECT DATE(start_time) as date, COUNT(*) as count
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY date ORDER BY count ASC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsos_by_callsign(self, start_date: Optional[str] = None,
+                             end_date: Optional[str] = None,
+                             band: Optional[str] = None,
+                             mode: Optional[str] = None,
+                             country: Optional[str] = None,
+                             limit: Optional[int] = 1000) -> List[Dict[str, Any]]:
+        """
+        Gibt QSOs gruppiert nach Rufzeichen zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+            limit: Maximale Anzahl der Ergebnisse (Standard: 1000)
+
+        Returns:
+            Liste mit Rufzeichen und QSO-Anzahl
+        """
+        query = """
+            SELECT callsign, COUNT(*) as count
+            FROM contacts
+            WHERE callsign IS NOT NULL AND callsign != ''
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY callsign ORDER BY count DESC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        return self.execute_query(query, tuple(params))
 
     def get_special_callsigns(self, start_date: Optional[str] = None,
-                              end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+                              end_date: Optional[str] = None,
+                              band: Optional[str] = None,
+                              mode: Optional[str] = None,
+                              country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit Sonderrufzeichen zurück
 
@@ -275,6 +604,9 @@ class QlogDatabase:
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
             end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
 
         Returns:
             Liste mit QSOs von Sonderrufzeichen
@@ -310,10 +642,67 @@ class QlogDatabase:
         if end_date:
             query += " AND start_time <= ?"
             params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
 
         query += " ORDER BY start_time DESC"
 
         return self.execute_query(query, tuple(params))
+
+    def get_all_bands(self) -> List[str]:
+        """
+        Gibt eine Liste aller verfügbaren Bänder zurück
+
+        Returns:
+            Liste von Band-Namen (sortiert nach Häufigkeit)
+        """
+        query = """
+            SELECT DISTINCT band
+            FROM contacts
+            WHERE band IS NOT NULL AND band != ''
+            ORDER BY band
+        """
+        results = self.execute_query(query)
+        return [row['band'] for row in results]
+
+    def get_all_modes(self) -> List[str]:
+        """
+        Gibt eine Liste aller verfügbaren Modes zurück
+
+        Returns:
+            Liste von Mode-Namen (sortiert alphabetisch)
+        """
+        query = """
+            SELECT DISTINCT mode
+            FROM contacts
+            WHERE mode IS NOT NULL AND mode != ''
+            ORDER BY mode
+        """
+        results = self.execute_query(query)
+        return [row['mode'] for row in results]
+
+    def get_all_countries(self) -> List[str]:
+        """
+        Gibt eine Liste aller verfügbaren Länder zurück
+
+        Returns:
+            Liste von Ländernamen (sortiert alphabetisch)
+        """
+        query = """
+            SELECT DISTINCT country
+            FROM contacts
+            WHERE country IS NOT NULL AND country != ''
+            ORDER BY country
+        """
+        results = self.execute_query(query)
+        return [row['country'] for row in results]
 
     def get_database_info(self) -> Dict[str, Any]:
         """

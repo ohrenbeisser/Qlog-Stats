@@ -88,9 +88,16 @@ class QlogStatsApp:
             'show_band': self._show_band,
             'show_mode': self._show_mode,
             'show_year': self._show_year,
+            'show_weekday': self._show_weekday,
+            'show_month': self._show_month,
+            'show_day': self._show_day,
+            'show_callsign': self._show_callsign,
+            'show_top_days': self._show_top_days,
+            'show_flop_days': self._show_flop_days,
             'show_special': self._show_special,
             'export_csv': self._export_csv,
-            'export_txt': self._export_txt
+            'export_txt': self._export_txt,
+            'show_about': self._show_about
         }
 
         # Hauptfenster erstellen
@@ -145,6 +152,10 @@ class QlogStatsApp:
             date_range = self.db.get_date_range()
             self.date_filter.start_date_var.set(date_range['min_date'])
             self.date_filter.end_date_var.set(date_range['max_date'])
+
+            # Filter-Optionen laden (Band, Mode, Land)
+            self.date_filter._load_filter_options()
+
             self.date_filter.update_info()
 
             # Erste Statistik anzeigen
@@ -199,6 +210,36 @@ class QlogStatsApp:
         if self.statistics:
             self.statistics.show_statistics('special')
 
+    def _show_weekday(self):
+        """Zeigt Wochentag-Statistik an"""
+        if self.statistics:
+            self.statistics.show_statistics('weekday')
+
+    def _show_month(self):
+        """Zeigt Monats-Statistik an"""
+        if self.statistics:
+            self.statistics.show_statistics('month')
+
+    def _show_day(self):
+        """Zeigt Tag-Statistik an"""
+        if self.statistics:
+            self.statistics.show_statistics('day')
+
+    def _show_callsign(self):
+        """Zeigt Rufzeichen-Statistik an"""
+        if self.statistics:
+            self.statistics.show_statistics('callsign')
+
+    def _show_top_days(self):
+        """Zeigt Top QSO-Tage an"""
+        if self.statistics:
+            self.statistics.show_statistics('top_days')
+
+    def _show_flop_days(self):
+        """Zeigt Flop QSO-Tage an"""
+        if self.statistics:
+            self.statistics.show_statistics('flop_days')
+
     def _export_csv(self):
         """Exportiert aktuelle Daten als CSV"""
         if self.export_handler:
@@ -208,6 +249,69 @@ class QlogStatsApp:
         """Exportiert aktuelle Daten als TXT"""
         if self.export_handler:
             self.export_handler.export_txt()
+
+    def _show_about(self):
+        """Zeigt den Über-Dialog an"""
+        import tkinter as tk
+        from tkinter import ttk
+
+        about_window = tk.Toplevel(self.root)
+        about_window.title("Über Qlog-Stats")
+        about_window.geometry("500x350")
+        about_window.resizable(False, False)
+
+        # Zentriere das Fenster
+        about_window.transient(self.root)
+        about_window.grab_set()
+
+        # Haupt-Frame mit Padding
+        main_frame = ttk.Frame(about_window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Titel
+        title_label = ttk.Label(main_frame, text="Qlog-Stats",
+                               font=('TkDefaultFont', 24, 'bold'))
+        title_label.pack(pady=(0, 20))
+
+        # Info-Frame
+        info_frame = ttk.Frame(main_frame)
+        info_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Info-Einträge
+        info_data = [
+            ("Version:", "0.0.1"),
+            ("Autor:", "Chris (DL6LG)"),
+            ("Lizenz:", "MIT"),
+            ("GitHub:", "https://github.com/DL6LG/Qlog-Stats")
+        ]
+
+        for i, (label_text, value_text) in enumerate(info_data):
+            label = ttk.Label(info_frame, text=label_text,
+                            font=('TkDefaultFont', 10, 'bold'))
+            label.grid(row=i, column=0, sticky='w', padx=(0, 10), pady=5)
+
+            value = ttk.Label(info_frame, text=value_text,
+                            font=('TkDefaultFont', 10))
+            value.grid(row=i, column=1, sticky='w', pady=5)
+
+        # Beschreibung
+        desc_text = "Statistik-Auswertung für Qlog - Amateur Radio Logging"
+        desc_label = ttk.Label(main_frame, text=desc_text,
+                              font=('TkDefaultFont', 9),
+                              wraplength=450, justify='center')
+        desc_label.pack(pady=(20, 20))
+
+        # OK-Button
+        ok_button = ttk.Button(main_frame, text="OK",
+                              command=about_window.destroy,
+                              width=10)
+        ok_button.pack(pady=(10, 0))
+
+        # Zentriere das Fenster auf dem Hauptfenster
+        about_window.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (about_window.winfo_width() // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (about_window.winfo_height() // 2)
+        about_window.geometry(f"+{x}+{y}")
 
     def run(self):
         """Startet die Anwendung"""

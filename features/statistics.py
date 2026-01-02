@@ -114,6 +114,73 @@ class Statistics:
                 'plot_ylabel': None,
                 'show_plot': False,
                 'on_double_click': 'qrz'
+            },
+            'weekday': {
+                'db_method': 'get_qsos_by_weekday',
+                'db_params': {},
+                'columns': ['weekday', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'QSOs nach Wochentagen',
+                'plot_xlabel': 'Wochentag',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None
+            },
+            'month': {
+                'db_method': 'get_qsos_by_month',
+                'db_params': {},
+                'columns': ['month', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'QSOs nach Monaten',
+                'plot_xlabel': 'Monat',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None
+            },
+            'day': {
+                'db_method': 'get_qsos_by_day',
+                'db_params': {},
+                'columns': ['day', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'QSOs nach Tagen',
+                'plot_xlabel': 'Tag des Monats',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None,
+                'plot_limit': 31
+            },
+            'callsign': {
+                'db_method': 'get_qsos_by_callsign',
+                'db_params': {'limit': 1000},
+                'columns': ['callsign', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'QSOs nach Rufzeichen (Top 20)',
+                'plot_xlabel': 'Rufzeichen',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None
+            },
+            'top_days': {
+                'db_method': 'get_top_qso_days',
+                'db_params': {'limit': 250},
+                'columns': ['date', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'Top QSO-Tage (Top 250)',
+                'plot_xlabel': 'Datum',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None
+            },
+            'flop_days': {
+                'db_method': 'get_flop_qso_days',
+                'db_params': {'limit': 250},
+                'columns': ['date', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'Flop QSO-Tage (250 Tage)',
+                'plot_xlabel': 'Datum',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None
             }
         }
 
@@ -145,14 +212,27 @@ class Statistics:
         try:
             # 1. Konfiguration und Parameter abrufen
             config = self.stat_configs[stat_type]
-            start_date, end_date = self.date_filter.get_dates()
+            filters = self.date_filter.get_filters()
 
             # 2. Tabellen-Label setzen (z.B. "Tabelle" oder "Sonderrufzeichen")
             self.table_view.set_label(config['table_label'])
 
-            # 3. Daten aus Datenbank abrufen
+            # 3. Filter intelligent anpassen je nach Statistik-Typ
+            # Entferne den entsprechenden Filter bei gruppierter Anzeige
+            filter_params = filters.copy()
+            if stat_type == 'country':
+                # Bei Länder-Statistik: Kein Land-Filter
+                filter_params.pop('country', None)
+            elif stat_type == 'band':
+                # Bei Band-Statistik: Kein Band-Filter
+                filter_params.pop('band', None)
+            elif stat_type == 'mode':
+                # Bei Mode-Statistik: Kein Mode-Filter
+                filter_params.pop('mode', None)
+
+            # 4. Daten aus Datenbank abrufen
             db_method = getattr(self.db, config['db_method'])
-            params = {**config['db_params'], 'start_date': start_date, 'end_date': end_date}
+            params = {**config['db_params'], **filter_params}
             data = db_method(**params)
 
             # 4. Spezielle Datenaufbereitung für Sonderrufzeichen
@@ -176,6 +256,7 @@ class Statistics:
                     self.paned_window.add(self.plot_view.parent_frame, minsize=300)
 
                 # Diagramm mit Daten aktualisieren
+                plot_limit = config.get('plot_limit', 20)  # Standard: 20 Datenpunkte
                 self.plot_view.update_plot(
                     data,
                     config['columns'][0],  # X-Achse (z.B. 'country')
@@ -183,12 +264,14 @@ class Statistics:
                     config['plot_title'],
                     config['plot_xlabel'],
                     config['plot_ylabel'],
-                    limit=20  # Maximal 20 Datenpunkte im Diagramm
+                    limit=plot_limit
                 )
             else:
                 # Diagramm verstecken (z.B. bei Sonderrufzeichen)
-                if self.plot_view.parent_frame in self.paned_window.panes():
+                try:
                     self.paned_window.forget(self.plot_view.parent_frame)
+                except:
+                    pass  # Panel war bereits entfernt
 
             # 8. Aktuellen Zustand speichern für Export und Refresh
             self.current_type = stat_type
