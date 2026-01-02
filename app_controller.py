@@ -97,6 +97,12 @@ class QlogStatsApp:
             'show_flop_days': self._show_flop_days,
             'show_search': self._show_search,
             'show_special': self._show_special,
+            'show_qsl_sent': self._show_qsl_sent,
+            'show_qsl_received': self._show_qsl_received,
+            'show_qsl_requested': self._show_qsl_requested,
+            'show_qsl_queued': self._show_qsl_queued,
+            'show_lotw_received': self._show_lotw_received,
+            'show_eqsl_received': self._show_eqsl_received,
             'export_csv': self._export_csv,
             'export_txt': self._export_txt,
             'show_about': self._show_about
@@ -117,6 +123,7 @@ class QlogStatsApp:
         # Date-Filter erstellen (db wird in _init_database() gesetzt)
         self.date_filter = DateFilter(
             self.main_window.get_filter_frame(),
+            self.main_window.get_search_frame(),
             self.db,
             self._on_filter_change
         )
@@ -217,14 +224,52 @@ class QlogStatsApp:
 
     def _show_search(self):
         """Zeigt Rufzeichen-Suche an"""
-        if self.date_filter:
+        if self.date_filter and self.statistics:
             # Suchzeile einblenden und Fokus setzen
             self.date_filter.show_search_row()
+            # Sofort alle QSOs anzeigen (mit aktuellen Filtern)
+            self.statistics.show_statistics('callsign_search')
 
     def _show_special(self):
         """Zeigt Sonderrufzeichen an"""
         if self.statistics:
             self.statistics.show_statistics('special')
+
+    def _show_qsl_sent(self):
+        """Zeigt versendete QSL-Karten an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('qsl_sent')
+
+    def _show_qsl_received(self):
+        """Zeigt erhaltene QSL-Karten an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('qsl_received')
+
+    def _show_qsl_requested(self):
+        """Zeigt angeforderte QSL-Karten an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('qsl_requested')
+
+    def _show_qsl_queued(self):
+        """Zeigt zu versendende QSL-Karten an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('qsl_queued')
+
+    def _show_lotw_received(self):
+        """Zeigt LotW-Bestätigungen an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('lotw_received')
+
+    def _show_eqsl_received(self):
+        """Zeigt eQSL-Bestätigungen an"""
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
+            self.statistics.show_statistics('eqsl_received')
 
     def _show_weekday(self):
         """Zeigt Wochentag-Statistik an"""

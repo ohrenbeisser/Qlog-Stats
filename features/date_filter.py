@@ -11,16 +11,18 @@ from datetime import datetime, timedelta
 class DateFilter:
     """Verwaltet die Datumsfilter und erweiterte Filter (Band, Mode, Land) UI und Logik"""
 
-    def __init__(self, parent_frame, db, on_filter_change_callback):
+    def __init__(self, parent_frame, search_parent_frame, db, on_filter_change_callback):
         """
         Initialisiert den Data Filter
 
         Args:
             parent_frame: Tkinter Frame für die Filter-Widgets
+            search_parent_frame: Tkinter Frame für die Such-Widgets
             db: QlogDatabase Instanz
             on_filter_change_callback: Callback der aufgerufen wird wenn Filter sich ändert
         """
         self.parent_frame = parent_frame
+        self.search_parent_frame = search_parent_frame
         self.db = db
         self.on_filter_change = on_filter_change_callback
 
@@ -30,8 +32,9 @@ class DateFilter:
         self.mode_var = tk.StringVar(value="Alle")
         self.country_var = tk.StringVar(value="Alle")
         self.callsign_search_var = tk.StringVar()
-        self.search_mode_var = tk.StringVar(value="partial")  # "exact" oder "partial"
+        self.search_mode_var = tk.StringVar(value="partial")  # "beginning" oder "partial"
         self.filter_info_label = None
+        self.search_timer = None  # Timer für verzögerte Auto-Suche
 
         self._create_widgets()
         self._load_date_range()
@@ -92,28 +95,34 @@ class DateFilter:
         self.filter_info_label = ttk.Label(filter_frame, text="")
         self.filter_info_label.pack(side=tk.LEFT, padx=(20, 0))
 
-        # Dritte Zeile: Rufzeichen-Suche (initial unsichtbar)
-        self.search_frame = ttk.Frame(self.parent_frame)
-        # Nicht packen - wird erst bei Bedarf eingeblendet
+        # Rufzeichen-Suche in separatem Frame (wird von MainWindow bereitgestellt)
+        # Der search_parent_frame ist bereits ein LabelFrame mit Titel "Rufzeichen-Suche"
+        search_content_frame = ttk.Frame(self.search_parent_frame)
+        search_content_frame.pack(fill=tk.X)
 
-        ttk.Label(self.search_frame, text="Rufzeichen:").pack(side=tk.LEFT, padx=(0, 5))
-        self.callsign_search_entry = ttk.Entry(self.search_frame,
+        ttk.Label(search_content_frame, text="Rufzeichen:").pack(side=tk.LEFT, padx=(0, 5))
+        self.callsign_search_entry = ttk.Entry(search_content_frame,
                                                textvariable=self.callsign_search_var,
                                                width=15)
         self.callsign_search_entry.pack(side=tk.LEFT, padx=(0, 15))
 
-        ttk.Radiobutton(self.search_frame, text="Teilstring", variable=self.search_mode_var,
+        ttk.Radiobutton(search_content_frame, text="Teilstring", variable=self.search_mode_var,
                        value="partial").pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Radiobutton(self.search_frame, text="Exakt", variable=self.search_mode_var,
-                       value="exact").pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Radiobutton(search_content_frame, text="Beginnend", variable=self.search_mode_var,
+                       value="beginning").pack(side=tk.LEFT, padx=(0, 15))
 
-        self.search_btn = ttk.Button(self.search_frame, text="Suchen",
-                                     command=self._perform_search)
-        self.search_btn.pack(side=tk.LEFT, padx=(0, 10))
+        # "Suchen" Button wird entfernt - Suche erfolgt automatisch bei Eingabe
 
-        self.clear_search_btn = ttk.Button(self.search_frame, text="Suche löschen",
+        self.clear_search_btn = ttk.Button(search_content_frame, text="Suche löschen",
                                            command=self._clear_search)
-        self.clear_search_btn.pack(side=tk.LEFT)
+        self.clear_search_btn.pack(side=tk.LEFT, padx=(0, 20))
+
+        # Ergebnis-Anzeige
+        self.search_result_label = ttk.Label(search_content_frame, text="")
+        self.search_result_label.pack(side=tk.LEFT)
+
+        # Auto-Suche: Bei Änderung des Suchfelds verzögert suchen (500ms)
+        self.callsign_search_var.trace_add('write', self._on_search_change)
 
     def _load_date_range(self):
         """Lädt den Datumsbereich aus der Datenbank"""
@@ -234,18 +243,30 @@ class DateFilter:
         self.end_date_var.set(today)
         self.apply_filter()
 
-    def _perform_search(self):
-        """Führt die Rufzeichen-Suche aus"""
-        search_term = self.callsign_search_var.get().strip()
-        if not search_term:
-            return
+    def _on_search_change(self, *args):
+        """
+        Wird bei jeder Änderung des Suchfelds aufgerufen
+        Startet einen Timer für verzögerte Suche (500ms)
+        """
+        # Lösche vorhandenen Timer
+        if self.search_timer:
+            self.callsign_search_entry.after_cancel(self.search_timer)
+
+        # Starte neuen Timer (500ms Verzögerung)
+        self.search_timer = self.callsign_search_entry.after(500, self._execute_search)
+
+    def _execute_search(self):
+        """Führt die tatsächliche Rufzeichen-Suche aus"""
         # Callback wird vom Controller gesetzt
         if hasattr(self, 'search_callback') and self.search_callback:
             self.search_callback()
+        self.search_timer = None
 
     def _clear_search(self):
-        """Löscht die Suche und setzt zurück"""
+        """Löscht die Suche und zeigt alle Ergebnisse wieder an"""
         self.callsign_search_var.set("")
+        # Trigger search to show all results
+        self._execute_search()
 
     def get_search_params(self):
         """
@@ -263,15 +284,27 @@ class DateFilter:
         }
 
     def show_search_row(self):
-        """Blendet die Rufzeichen-Suchzeile ein und setzt den Fokus"""
-        self.search_frame.pack(fill=tk.X, pady=(5, 0))
+        """Blendet den Rufzeichen-Such-Rahmen ein und setzt den Fokus"""
+        self.search_parent_frame.pack(fill=tk.X, pady=(0, 10))
         # Fokus auf das Eingabefeld setzen
         self.callsign_search_entry.focus_set()
 
     def hide_search_row(self):
-        """Blendet die Rufzeichen-Suchzeile aus"""
-        self.search_frame.pack_forget()
+        """Blendet den Rufzeichen-Such-Rahmen aus"""
+        self.search_parent_frame.pack_forget()
 
     def is_search_row_visible(self):
-        """Prüft ob die Suchzeile sichtbar ist"""
-        return self.search_frame.winfo_ismapped()
+        """Prüft ob der Such-Rahmen sichtbar ist"""
+        return self.search_parent_frame.winfo_ismapped()
+
+    def update_search_result_count(self, count):
+        """
+        Aktualisiert die Anzeige der gefundenen Ergebnisse
+
+        Args:
+            count: Anzahl der gefundenen QSOs
+        """
+        if count == 1:
+            self.search_result_label.config(text="1 Ergebnis")
+        else:
+            self.search_result_label.config(text=f"{count} Ergebnisse")

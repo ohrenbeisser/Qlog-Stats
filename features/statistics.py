@@ -204,6 +204,72 @@ class Statistics:
                 'plot_ylabel': None,
                 'show_plot': False,
                 'on_double_click': 'qrz'
+            },
+            'qsl_sent': {
+                'db_method': 'get_qsl_sent',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'table_label': 'Versendete QSL-Karten',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
+            },
+            'qsl_received': {
+                'db_method': 'get_qsl_received',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'table_label': 'Erhaltene QSL-Karten',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
+            },
+            'qsl_requested': {
+                'db_method': 'get_qsl_requested',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'table_label': 'Angeforderte QSL-Karten',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
+            },
+            'qsl_queued': {
+                'db_method': 'get_qsl_queued',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'table_label': 'Zu versendende QSL-Karten',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
+            },
+            'lotw_received': {
+                'db_method': 'get_lotw_received',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'table_label': 'LotW-Bestätigungen',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
+            },
+            'eqsl_received': {
+                'db_method': 'get_eqsl_received',
+                'db_params': {},
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'table_label': 'eQSL-Bestätigungen',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
             }
         }
 
@@ -238,8 +304,10 @@ class Statistics:
             filters = self.date_filter.get_filters()
 
             # 2. Suchzeile ein-/ausblenden je nach Statistik-Typ
-            if stat_type != 'callsign_search':
-                # Bei allen anderen Statistiken: Suchzeile ausblenden
+            qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
+                        'lotw_received', 'eqsl_received']
+            if stat_type not in ['callsign_search'] + qsl_types:
+                # Bei Statistiken außer Suche und QSL: Suchzeile ausblenden
                 self.date_filter.hide_search_row()
 
             # 3. Tabellen-Label setzen (z.B. "Tabelle" oder "Sonderrufzeichen")
@@ -266,21 +334,22 @@ class Statistics:
             if stat_type == 'callsign_search':
                 search_params = self.date_filter.get_search_params()
                 if search_params:
+                    # Mit Suchbegriff: Normale Suche durchführen
                     params['search_term'] = search_params['search_term']
                     params['search_mode'] = search_params['search_mode']
                 else:
-                    # Keine Suchparameter - zeige leere Tabelle
-                    data = []
-                    db_method = None
+                    # Ohne Suchbegriff: Alle QSOs anzeigen (mit Filter)
+                    # Verwende einen leeren Suchbegriff mit Teilstring-Modus (zeigt alle)
+                    params['search_term'] = ''
+                    params['search_mode'] = 'partial'
 
-            if db_method:
-                data = db_method(**params)
-            else:
-                data = []
+            data = db_method(**params)
 
-            # 4. Spezielle Datenaufbereitung für Sonderrufzeichen und Suche
-            # Füge 'Link' Text in QRZ-Spalte ein
-            if stat_type == 'special' or stat_type == 'callsign_search':
+            # 4. Spezielle Datenaufbereitung für QRZ-Links
+            # Füge 'Link' Text in QRZ-Spalte ein für Sonderrufzeichen, Suche und QSL-Ansichten
+            qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
+                        'lotw_received', 'eqsl_received']
+            if stat_type in ['special', 'callsign_search'] + qsl_types:
                 for row in data:
                     row['qrz'] = 'Link'
 
@@ -322,6 +391,12 @@ class Statistics:
 
             # 9. QSO-Zähler aktualisieren
             self.date_filter.update_info()
+
+            # 10. Bei Rufzeichen-Suche und QSL-Ansichten: Ergebnis-Anzahl aktualisieren
+            qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
+                        'lotw_received', 'eqsl_received']
+            if stat_type in ['callsign_search'] + qsl_types:
+                self.date_filter.update_search_result_count(len(data))
 
         except Exception as e:
             # Zentrales Error-Handling: Zeige Fehlermeldung

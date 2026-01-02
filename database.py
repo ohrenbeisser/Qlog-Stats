@@ -757,11 +757,11 @@ class QlogDatabase:
                         mode: Optional[str] = None,
                         country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Sucht nach Rufzeichen (exakt oder Teilstring)
+        Sucht nach Rufzeichen (beginnend oder Teilstring)
 
         Args:
             search_term: Suchbegriff
-            search_mode: 'exact' für exakte Suche, 'partial' für Teilstring-Suche
+            search_mode: 'beginning' für Suche ab Beginn, 'partial' für Teilstring-Suche
             start_date: Startdatum (YYYY-MM-DD) für Filter
             end_date: Enddatum (YYYY-MM-DD) für Filter
             band: Band-Filter
@@ -788,13 +788,17 @@ class QlogDatabase:
 
         params = []
 
-        # Rufzeichen-Suche (exakt oder Teilstring)
-        if search_mode == 'exact':
-            query += " AND UPPER(callsign) = UPPER(?)"
-            params.append(search_term)
-        else:  # partial
-            query += " AND UPPER(callsign) LIKE UPPER(?)"
-            params.append(f"%{search_term}%")
+        # Rufzeichen-Suche (beginnend oder Teilstring)
+        # Wenn search_term leer ist, alle Rufzeichen anzeigen
+        if search_term:  # Nur filtern wenn Suchbegriff vorhanden
+            if search_mode == 'beginning':
+                # Suche vom Beginn des Rufzeichens
+                query += " AND UPPER(callsign) LIKE UPPER(?)"
+                params.append(f"{search_term}%")
+            else:  # partial
+                # Suche im gesamten Rufzeichen (Teilstring)
+                query += " AND UPPER(callsign) LIKE UPPER(?)"
+                params.append(f"%{search_term}%")
 
         # Datumsfilter
         if start_date:
@@ -821,6 +825,358 @@ class QlogDatabase:
             params.append(country)
 
         # Sortierung nach Datum und Zeit (neueste zuerst)
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsl_sent(self, start_date: Optional[str] = None,
+                    end_date: Optional[str] = None,
+                    band: Optional[str] = None,
+                    mode: Optional[str] = None,
+                    country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit versendeten QSL-Karten zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country,
+                qsl_sdate as qsl_date
+            FROM contacts
+            WHERE qsl_sdate IS NOT NULL
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsl_received(self, start_date: Optional[str] = None,
+                        end_date: Optional[str] = None,
+                        band: Optional[str] = None,
+                        mode: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit erhaltenen QSL-Karten zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country,
+                qsl_rdate as qsl_date
+            FROM contacts
+            WHERE qsl_rdate IS NOT NULL
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsl_requested(self, start_date: Optional[str] = None,
+                         end_date: Optional[str] = None,
+                         band: Optional[str] = None,
+                         mode: Optional[str] = None,
+                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit angeforderten QSL-Karten zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country
+            FROM contacts
+            WHERE qsl_rcvd = 'R'
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_qsl_queued(self, start_date: Optional[str] = None,
+                      end_date: Optional[str] = None,
+                      band: Optional[str] = None,
+                      mode: Optional[str] = None,
+                      country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit zu versendenden QSL-Karten zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country
+            FROM contacts
+            WHERE qsl_sent = 'Q'
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_lotw_received(self, start_date: Optional[str] = None,
+                         end_date: Optional[str] = None,
+                         band: Optional[str] = None,
+                         mode: Optional[str] = None,
+                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit LotW-Bestätigungen zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country,
+                lotw_qslrdate as qsl_date
+            FROM contacts
+            WHERE lotw_qsl_rcvd = 'Y'
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
+
+    def get_eqsl_received(self, start_date: Optional[str] = None,
+                         end_date: Optional[str] = None,
+                         band: Optional[str] = None,
+                         mode: Optional[str] = None,
+                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt alle QSOs mit eQSL-Bestätigungen zurück
+
+        Args:
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country,
+                eqsl_qslrdate as qsl_date
+            FROM contacts
+            WHERE eqsl_qsl_rcvd = 'Y'
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
         query += " ORDER BY start_time DESC"
 
         return self.execute_query(query, tuple(params))

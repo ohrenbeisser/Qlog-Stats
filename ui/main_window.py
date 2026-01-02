@@ -32,6 +32,12 @@ class MainWindow:
                 - 'show_flop_days': Callback für Flop QSO-Tage
                 - 'show_search': Callback für Rufzeichen-Suche
                 - 'show_special': Callback für Spezialcallsign
+                - 'show_qsl_sent': Callback für versendete QSL-Karten
+                - 'show_qsl_received': Callback für erhaltene QSL-Karten
+                - 'show_qsl_requested': Callback für angeforderte QSL-Karten
+                - 'show_qsl_queued': Callback für zu versendende QSL-Karten
+                - 'show_lotw_received': Callback für LotW-Bestätigungen
+                - 'show_eqsl_received': Callback für eQSL-Bestätigungen
                 - 'export_csv': Callback für CSV-Export
                 - 'export_txt': Callback für TXT-Export
                 - 'show_about': Callback für Über-Dialog
@@ -41,6 +47,7 @@ class MainWindow:
 
         self.main_frame = None
         self.filter_frame = None
+        self.search_frame = None
         self.paned_window = None
         self.table_frame = None
         self.plot_frame = None
@@ -96,6 +103,22 @@ class MainWindow:
         callsign_menu.add_command(label="Spezialcallsign",
                                command=self.callbacks.get('show_special'))
 
+        qsl_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="QSL", menu=qsl_menu)
+        qsl_menu.add_command(label="Karte versendet",
+                            command=self.callbacks.get('show_qsl_sent'))
+        qsl_menu.add_command(label="Karte erhalten",
+                            command=self.callbacks.get('show_qsl_received'))
+        qsl_menu.add_command(label="Karte angefordert",
+                            command=self.callbacks.get('show_qsl_requested'))
+        qsl_menu.add_command(label="Karte zuversenden",
+                            command=self.callbacks.get('show_qsl_queued'))
+        qsl_menu.add_separator()
+        qsl_menu.add_command(label="LotW erhalten",
+                            command=self.callbacks.get('show_lotw_received'))
+        qsl_menu.add_command(label="eQSL erhalten",
+                            command=self.callbacks.get('show_eqsl_received'))
+
         export_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Export", menu=export_menu)
         export_menu.add_command(label="Als CSV exportieren",
@@ -116,6 +139,9 @@ class MainWindow:
         self.filter_frame = ttk.LabelFrame(self.main_frame, text="Filter", padding="5")
         self.filter_frame.pack(fill=tk.X, pady=(0, 10))
 
+        self.search_frame = ttk.LabelFrame(self.main_frame, text="Rufzeichen-Suche", padding="5")
+        # Nicht packen - wird erst bei Bedarf eingeblendet
+
         self.paned_window = tk.PanedWindow(self.main_frame, orient=tk.HORIZONTAL,
                                           sashwidth=5, sashrelief=tk.RAISED, bg='#cccccc')
         self.paned_window.pack(fill=tk.BOTH, expand=True)
@@ -133,6 +159,10 @@ class MainWindow:
     def get_filter_frame(self):
         """Gibt den Filter-Frame zurück"""
         return self.filter_frame
+
+    def get_search_frame(self):
+        """Gibt den Such-Frame zurück"""
+        return self.search_frame
 
     def get_paned_window(self):
         """Gibt das PanedWindow zurück"""
