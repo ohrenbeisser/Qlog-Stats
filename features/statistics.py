@@ -149,6 +149,18 @@ class Statistics:
                 'on_double_click': None,
                 'plot_limit': 31
             },
+            'hour': {
+                'db_method': 'get_qsos_by_hour',
+                'db_params': {},
+                'columns': ['hour', 'count'],
+                'table_label': 'Tabelle',
+                'plot_title': 'QSOs nach Stunden',
+                'plot_xlabel': 'Stunde',
+                'plot_ylabel': 'Anzahl QSOs',
+                'show_plot': True,
+                'on_double_click': None,
+                'plot_limit': 24
+            },
             'callsign': {
                 'db_method': 'get_qsos_by_callsign',
                 'db_params': {'limit': 1000},
@@ -181,6 +193,17 @@ class Statistics:
                 'plot_ylabel': 'Anzahl QSOs',
                 'show_plot': True,
                 'on_double_click': None
+            },
+            'callsign_search': {
+                'db_method': 'search_callsigns',
+                'db_params': {},  # wird dynamisch gefüllt
+                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'table_label': 'Suchergebnisse',
+                'plot_title': None,
+                'plot_xlabel': None,
+                'plot_ylabel': None,
+                'show_plot': False,
+                'on_double_click': 'qrz'
             }
         }
 

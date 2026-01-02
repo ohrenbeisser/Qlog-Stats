@@ -88,9 +88,10 @@ class QlogStatsApp:
             'show_band': self._show_band,
             'show_mode': self._show_mode,
             'show_year': self._show_year,
-            'show_weekday': self._show_weekday,
             'show_month': self._show_month,
+            'show_weekday': self._show_weekday,
             'show_day': self._show_day,
+            'show_hour': self._show_hour,
             'show_callsign': self._show_callsign,
             'show_top_days': self._show_top_days,
             'show_flop_days': self._show_flop_days,
@@ -224,6 +225,11 @@ class QlogStatsApp:
         """Zeigt Tag-Statistik an"""
         if self.statistics:
             self.statistics.show_statistics('day')
+
+    def _show_hour(self):
+        """Zeigt Stunden-Statistik an"""
+        if self.statistics:
+            self.statistics.show_statistics('hour')
 
     def _show_callsign(self):
         """Zeigt Rufzeichen-Statistik an"""

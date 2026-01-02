@@ -23,12 +23,14 @@ class MainWindow:
                 - 'show_band': Callback für Band-Statistik
                 - 'show_mode': Callback für Mode-Statistik
                 - 'show_year': Callback für Jahr-Statistik
-                - 'show_weekday': Callback für Wochentag-Statistik
                 - 'show_month': Callback für Monats-Statistik
+                - 'show_weekday': Callback für Wochentag-Statistik
                 - 'show_day': Callback für Monatstag-Statistik
+                - 'show_hour': Callback für Stunden-Statistik
                 - 'show_callsign': Callback für Rufzeichen-Statistik
                 - 'show_top_days': Callback für Top QSO-Tage
                 - 'show_flop_days': Callback für Flop QSO-Tage
+                - 'show_search': Callback für Rufzeichen-Suche
                 - 'show_special': Callback für Spezialcallsign
                 - 'export_csv': Callback für CSV-Export
                 - 'export_txt': Callback für TXT-Export
@@ -70,12 +72,14 @@ class MainWindow:
         stats_menu.add_separator()
         stats_menu.add_command(label="QSOs nach Jahren",
                              command=self.callbacks.get('show_year'))
-        stats_menu.add_command(label="QSOs nach Wochentagen",
-                             command=self.callbacks.get('show_weekday'))
         stats_menu.add_command(label="QSOs nach Monaten",
                              command=self.callbacks.get('show_month'))
+        stats_menu.add_command(label="QSOs nach Wochentagen",
+                             command=self.callbacks.get('show_weekday'))
         stats_menu.add_command(label="QSOs nach Monatstagen",
                              command=self.callbacks.get('show_day'))
+        stats_menu.add_command(label="QSOs nach Stunden",
+                             command=self.callbacks.get('show_hour'))
         stats_menu.add_separator()
         stats_menu.add_command(label="Top QSO-Tage",
                              command=self.callbacks.get('show_top_days'))
@@ -87,6 +91,8 @@ class MainWindow:
 
         callsign_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Rufzeichen", menu=callsign_menu)
+        callsign_menu.add_command(label="Suche",
+                               command=self.callbacks.get('show_search'))
         callsign_menu.add_command(label="Spezialcallsign",
                                command=self.callbacks.get('show_special'))
 
@@ -107,7 +113,7 @@ class MainWindow:
         self.main_frame = ttk.Frame(self.root, padding="10")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.filter_frame = ttk.LabelFrame(self.main_frame, text="Zeitbereich Filter", padding="5")
+        self.filter_frame = ttk.LabelFrame(self.main_frame, text="Filter", padding="5")
         self.filter_frame.pack(fill=tk.X, pady=(0, 10))
 
         self.paned_window = tk.PanedWindow(self.main_frame, orient=tk.HORIZONTAL,

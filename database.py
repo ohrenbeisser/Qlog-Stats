@@ -393,6 +393,51 @@ class QlogDatabase:
 
         return self.execute_query(query, tuple(params))
 
+    def get_qsos_by_hour(self, start_date: Optional[str] = None,
+                         end_date: Optional[str] = None,
+                         band: Optional[str] = None,
+                         mode: Optional[str] = None,
+                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Gibt QSOs gruppiert nach Stunde (0-23) zurück
+
+        Args:
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+
+        Returns:
+            Liste mit Stunden und QSO-Anzahl
+        """
+        query = """
+            SELECT CAST(strftime('%H', start_time) AS INTEGER) as hour, COUNT(*) as count
+            FROM contacts
+            WHERE start_time IS NOT NULL
+        """
+        params = []
+
+        if start_date:
+            query += " AND start_time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND start_time <= ?"
+            params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " GROUP BY hour ORDER BY hour"
+
+        return self.execute_query(query, tuple(params))
+
     def get_qsos_by_day(self, start_date: Optional[str] = None,
                         end_date: Optional[str] = None,
                         band: Optional[str] = None,
@@ -703,6 +748,82 @@ class QlogDatabase:
         """
         results = self.execute_query(query)
         return [row['country'] for row in results]
+
+    def search_callsigns(self, search_term: str,
+                        search_mode: str = 'partial',
+                        start_date: Optional[str] = None,
+                        end_date: Optional[str] = None,
+                        band: Optional[str] = None,
+                        mode: Optional[str] = None,
+                        country: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Sucht nach Rufzeichen (exakt oder Teilstring)
+
+        Args:
+            search_term: Suchbegriff
+            search_mode: 'exact' für exakte Suche, 'partial' für Teilstring-Suche
+            start_date: Startdatum (YYYY-MM-DD) für Filter
+            end_date: Enddatum (YYYY-MM-DD) für Filter
+            band: Band-Filter
+            mode: Mode-Filter
+            country: Land-Filter
+
+        Returns:
+            Liste von QSO-Dictionaries mit Details (callsign, date, time, band, mode, country)
+        """
+        self.connect()
+
+        # Basis-Query
+        query = """
+            SELECT
+                callsign,
+                DATE(start_time) as date,
+                TIME(start_time) as time,
+                band,
+                mode,
+                country
+            FROM contacts
+            WHERE 1=1
+        """
+
+        params = []
+
+        # Rufzeichen-Suche (exakt oder Teilstring)
+        if search_mode == 'exact':
+            query += " AND UPPER(callsign) = UPPER(?)"
+            params.append(search_term)
+        else:  # partial
+            query += " AND UPPER(callsign) LIKE UPPER(?)"
+            params.append(f"%{search_term}%")
+
+        # Datumsfilter
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        # Band-Filter
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        # Mode-Filter
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        # Land-Filter
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        # Sortierung nach Datum und Zeit (neueste zuerst)
+        query += " ORDER BY start_time DESC"
+
+        return self.execute_query(query, tuple(params))
 
     def get_database_info(self) -> Dict[str, Any]:
         """
