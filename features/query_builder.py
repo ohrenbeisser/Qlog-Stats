@@ -65,7 +65,7 @@ class QueryBuilderDialog:
 
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Neue Abfrage" if not existing_query else "Abfrage bearbeiten")
-        self.dialog.geometry("700x600")
+        self.dialog.geometry("900x600")
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
@@ -90,7 +90,7 @@ class QueryBuilderDialog:
         self.name_entry.pack(side=tk.LEFT, padx=(10, 0), fill=tk.X, expand=True)
 
         # Bedingungen
-        conditions_frame = ttk.LabelFrame(main_frame, text="Bedingungen (alle mit AND verknüpft)", padding="10")
+        conditions_frame = ttk.LabelFrame(main_frame, text="Bedingungen", padding="10")
         conditions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
         # Scrollbarer Frame für Bedingungen
@@ -156,6 +156,17 @@ class QueryBuilderDialog:
         condition_frame = ttk.Frame(self.conditions_container)
         condition_frame.pack(fill=tk.X, pady=2)
 
+        # AND/OR Verknüpfung (nur für 2. und weitere Bedingungen)
+        logic_var = tk.StringVar(value="AND")
+        if len(self.conditions) > 0:
+            logic_combo = ttk.Combobox(condition_frame, textvariable=logic_var,
+                                       values=["AND", "OR"],
+                                       state='readonly', width=5)
+            logic_combo.pack(side=tk.LEFT, padx=(0, 5))
+        else:
+            # Für erste Bedingung: Platzhalter-Label
+            ttk.Label(condition_frame, text="     ", width=5).pack(side=tk.LEFT, padx=(0, 5))
+
         # Feld
         field_var = tk.StringVar()
         field_combo = ttk.Combobox(condition_frame, textvariable=field_var,
@@ -187,7 +198,8 @@ class QueryBuilderDialog:
             'frame': condition_frame,
             'field_var': field_var,
             'operator_var': operator_var,
-            'value_var': value_var
+            'value_var': value_var,
+            'logic_var': logic_var
         })
 
     def _remove_condition(self, frame):
@@ -214,7 +226,7 @@ class QueryBuilderDialog:
         """Erstellt die Query-Daten aus den Eingaben"""
         # Sammle Bedingungen
         conditions = []
-        for cond in self.conditions:
+        for i, cond in enumerate(self.conditions):
             field_name = cond['field_var'].get()
             operator_name = cond['operator_var'].get()
             value = cond['value_var'].get()
@@ -225,11 +237,17 @@ class QueryBuilderDialog:
             field_id = self._get_field_id(field_name)
             operator = self._get_operator_symbol(operator_name)
 
-            conditions.append({
+            condition_data = {
                 'field': field_id,
                 'operator': operator,
                 'value': value
-            })
+            }
+
+            # Füge Logic hinzu (außer für erste Bedingung)
+            if i > 0:
+                condition_data['logic'] = cond['logic_var'].get()
+
+            conditions.append(condition_data)
 
         # Sammle Spalten
         columns = [field_id for field_id, var in self.column_vars.items() if var.get()]
@@ -245,24 +263,68 @@ class QueryBuilderDialog:
         }
 
     def _preview_sql(self):
-        """Zeigt eine Vorschau des generierten SQL"""
+        """Zeigt eine Vorschau des generierten SQL (editierbar)"""
         query_data = self._build_query_data()
         sql = self._generate_sql(query_data)
 
         preview_window = tk.Toplevel(self.dialog)
-        preview_window.title("SQL Vorschau")
-        preview_window.geometry("600x300")
+        preview_window.title("SQL Vorschau / Bearbeiten")
+        preview_window.geometry("700x400")
+        preview_window.transient(self.dialog)
 
+        # Info-Label
+        info_frame = ttk.Frame(preview_window, padding="10")
+        info_frame.pack(fill=tk.X)
+        ttk.Label(info_frame, text="Sie können die SQL-Abfrage hier bearbeiten. Klicken Sie auf 'SQL verwenden', um die editierte Version zu übernehmen.",
+                 wraplength=650).pack()
+
+        # Text-Widget
         text_frame = ttk.Frame(preview_window, padding="10")
         text_frame.pack(fill=tk.BOTH, expand=True)
 
-        text = tk.Text(text_frame, wrap=tk.WORD, height=10)
-        text.pack(fill=tk.BOTH, expand=True)
-        text.insert('1.0', sql)
-        text.config(state=tk.DISABLED)
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        ttk.Button(preview_window, text="Schließen",
-                  command=preview_window.destroy).pack(pady=5)
+        text = tk.Text(text_frame, wrap=tk.WORD, height=10, yscrollcommand=scrollbar.set)
+        text.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=text.yview)
+
+        text.insert('1.0', sql)
+
+        # Buttons
+        button_frame = ttk.Frame(preview_window, padding="10")
+        button_frame.pack(fill=tk.X)
+
+        def use_sql():
+            """Übernimmt die editierte SQL"""
+            edited_sql = text.get('1.0', tk.END).strip()
+
+            # Speichere als SQL-Abfrage (nicht Builder)
+            query_data = {
+                'name': self.name_var.get(),
+                'type': 'sql',
+                'sql': edited_sql,
+                'builder': None
+            }
+
+            # Wenn bestehende Abfrage, behalte ID
+            if self.existing_query:
+                query_data['id'] = self.existing_query.get('id')
+
+            try:
+                self.query_manager.save_query(query_data)
+                self.result = query_data
+                messagebox.showinfo("Erfolg", f"SQL-Abfrage '{query_data['name']}' wurde gespeichert.")
+                preview_window.destroy()
+                self.dialog.destroy()
+            except Exception as e:
+                messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{str(e)}")
+
+        ttk.Button(button_frame, text="SQL verwenden",
+                  command=use_sql).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="Schließen",
+                  command=preview_window.destroy).pack(side=tk.LEFT)
 
     def _generate_sql(self, query_data: Dict[str, Any]) -> str:
         """Generiert SQL aus Query-Daten"""
@@ -292,22 +354,30 @@ class QueryBuilderDialog:
         # WHERE
         if conditions:
             where_parts = []
-            for cond in conditions:
+            for i, cond in enumerate(conditions):
                 field = cond['field']
                 operator = cond['operator']
                 value = cond['value']
 
+                # Baue die Bedingung
                 if operator in ('IS NULL', 'IS NOT NULL'):
-                    where_parts.append(f"{field} {operator}")
+                    condition_str = f"{field} {operator}"
                 elif operator == 'LIKE' or operator == 'NOT LIKE':
-                    where_parts.append(f"{field} {operator} '%{value}%'")
+                    condition_str = f"{field} {operator} '%{value}%'"
                 else:
                     # Escape single quotes
                     value_escaped = value.replace("'", "''")
-                    where_parts.append(f"{field} {operator} '{value_escaped}'")
+                    condition_str = f"{field} {operator} '{value_escaped}'"
+
+                # Füge Logic (AND/OR) hinzu, außer für erste Bedingung
+                if i > 0:
+                    logic = cond.get('logic', 'AND')
+                    where_parts.append(f"{logic} {condition_str}")
+                else:
+                    where_parts.append(condition_str)
 
             if where_parts:
-                sql += " WHERE " + " AND ".join(where_parts)
+                sql += " WHERE " + " ".join(where_parts)
 
         sql += " ORDER BY start_time DESC"
 
@@ -347,8 +417,12 @@ class QueryBuilderDialog:
         # Name setzen
         self.name_var.set(self.existing_query.get('name', ''))
 
-        # Builder-Daten laden
-        builder = self.existing_query.get('builder', {})
+        # Builder-Daten laden (nur wenn type='builder')
+        builder = self.existing_query.get('builder')
+        if not builder:
+            # SQL-Abfrage kann nicht als Builder bearbeitet werden
+            # Nur Name wurde geladen, Rest bleibt leer
+            return
 
         # Bedingungen laden
         conditions = builder.get('conditions', [])
@@ -357,7 +431,7 @@ class QueryBuilderDialog:
             self.conditions[0]['frame'].destroy()
             self.conditions = []
 
-        for cond in conditions:
+        for i, cond in enumerate(conditions):
             self._add_condition()
             last_cond = self.conditions[-1]
 
@@ -371,6 +445,11 @@ class QueryBuilderDialog:
             last_cond['operator_var'].set(operator_name)
 
             last_cond['value_var'].set(cond.get('value', ''))
+
+            # Setze Logic (für 2. und weitere Bedingungen)
+            if i > 0:
+                logic = cond.get('logic', 'AND')
+                last_cond['logic_var'].set(logic)
 
         # Spalten laden
         columns = builder.get('columns', [])

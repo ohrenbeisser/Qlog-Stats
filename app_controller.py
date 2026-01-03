@@ -407,31 +407,64 @@ class QlogStatsApp:
             return
 
         try:
-            # Generiere SQL
-            from features.query_builder import QueryBuilderDialog
-            sql = QueryBuilderDialog._generate_sql(None, query)
+            # Bestimme SQL basierend auf Abfrage-Typ
+            query_type = query.get('type', 'builder')
+
+            if query_type == 'sql':
+                # Direkte SQL-Abfrage
+                sql = query.get('sql', '')
+                # Bei SQL-Abfragen: Extrahiere Spaltennamen aus SQL
+                # Einfache Heuristik: SELECT col1, col2, ... FROM
+                import re
+                match = re.search(r'SELECT\s+(.*?)\s+FROM', sql, re.IGNORECASE)
+                if match:
+                    cols_str = match.group(1)
+                    if cols_str.strip() == '*':
+                        display_columns = []  # Alle Spalten
+                    else:
+                        # Extrahiere Spaltennamen (berücksichtige "as alias")
+                        col_parts = [c.strip() for c in cols_str.split(',')]
+                        display_columns = []
+                        for part in col_parts:
+                            if ' as ' in part.lower():
+                                # "column as alias" -> nehme alias
+                                alias = part.split(' as ')[-1].strip()
+                                display_columns.append(alias)
+                            else:
+                                display_columns.append(part)
+                else:
+                    display_columns = []
+            else:
+                # Builder-Abfrage
+                from features.query_builder import QueryBuilderDialog
+                sql = QueryBuilderDialog._generate_sql(None, query)
+
+                # Bestimme Spalten
+                builder = query.get('builder', {})
+                columns = builder.get('columns', [])
+
+                # Wenn start_time in Spalten, ersetze durch date und time
+                if 'start_time' in columns:
+                    display_columns = []
+                    for col in columns:
+                        if col == 'start_time':
+                            display_columns.extend(['date', 'time'])
+                        else:
+                            display_columns.append(col)
+                else:
+                    display_columns = columns
 
             # Führe Abfrage aus
             results = self.db.execute_query(sql)
 
-            # Bestimme Spalten
-            builder = query.get('builder', {})
-            columns = builder.get('columns', [])
-
-            # Wenn start_time in Spalten, ersetze durch date und time
-            if 'start_time' in columns:
-                display_columns = []
-                for col in columns:
-                    if col == 'start_time':
-                        display_columns.extend(['date', 'time'])
-                    else:
-                        display_columns.append(col)
-            else:
-                display_columns = columns
-
             # Zeige Ergebnisse
             self.table_view.set_label(query.get('name', 'Abfrage'))
-            self.table_view.populate(display_columns, results)
+
+            # QRZ-Link für Doppelklick aktivieren
+            from features.qrz_integration import QRZIntegration
+            on_double_click = QRZIntegration.create_callback(self.table_view.get_tree())
+
+            self.table_view.populate(display_columns, results, on_double_click=on_double_click)
 
             # Verstecke Plot
             try:
