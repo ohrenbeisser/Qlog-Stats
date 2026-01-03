@@ -306,8 +306,8 @@ class Statistics:
             # 2. Suchzeile ein-/ausblenden je nach Statistik-Typ
             qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
                         'lotw_received', 'eqsl_received']
-            if stat_type not in ['callsign_search'] + qsl_types:
-                # Bei Statistiken außer Suche und QSL: Suchzeile ausblenden
+            if stat_type not in ['callsign_search', 'special'] + qsl_types:
+                # Bei Statistiken außer Suche, Sonderrufzeichen und QSL: Suchzeile ausblenden
                 self.date_filter.hide_search_row()
 
             # 3. Tabellen-Label setzen (z.B. "Tabelle" oder "Sonderrufzeichen")
@@ -344,6 +344,29 @@ class Statistics:
                     params['search_mode'] = 'partial'
 
             data = db_method(**params)
+
+            # Spezialbehandlung für Sonderrufzeichen-Filter
+            if stat_type == 'special':
+                search_params = self.date_filter.get_search_params()
+                if search_params and search_params['search_term']:
+                    # Filtere Sonderrufzeichen nach Suchbegriff
+                    search_term = search_params['search_term'].upper()
+                    search_mode = search_params['search_mode']
+
+                    filtered_data = []
+                    for row in data:
+                        callsign = row.get('callsign', '').upper()
+
+                        if search_mode == 'beginning':
+                            # Suche vom Beginn des Rufzeichens
+                            if callsign.startswith(search_term):
+                                filtered_data.append(row)
+                        else:  # partial
+                            # Teilstring-Suche
+                            if search_term in callsign:
+                                filtered_data.append(row)
+
+                    data = filtered_data
 
             # 4. Spezielle Datenaufbereitung für QRZ-Links
             # Füge 'Link' Text in QRZ-Spalte ein für Sonderrufzeichen, Suche und QSL-Ansichten

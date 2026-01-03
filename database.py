@@ -639,12 +639,15 @@ class QlogDatabase:
                               mode: Optional[str] = None,
                               country: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Gibt alle QSOs mit Sonderrufzeichen zurück
+        Gibt alle QSOs mit Sonderrufzeichen zurück (weltweit)
 
-        Sonderrufzeichen haben:
-        - Mehr als eine Zahl im Callsign
-        - DR-Präfix
-        - 0 als zweite Ziffer (z.B. DL0, DA0)
+        Sonderrufzeichen-Kriterien:
+        - Mehrere aufeinanderfolgende Ziffern im Rufzeichen (z.B. DL2025W, 9A100IARU)
+        - Suffix länger als 3 Buchstaben (z.B. 3Z0XMAS, DA0IARU)
+
+        Normale Rufzeichen-Struktur: [Präfix: 1-2 Buchstaben] + [EINE Ziffer] + [Suffix: 2-3 Buchstaben]
+        Beispiele normal: DL6LG, K3AB, 9A2L
+        Beispiele Sonder: DL75DARC (75=2 Ziffern), DA0IARU (IARU=4 Buchstaben)
 
         Args:
             start_date: Start-Datum (YYYY-MM-DD) optional
@@ -656,6 +659,9 @@ class QlogDatabase:
         Returns:
             Liste mit QSOs von Sonderrufzeichen
         """
+        import re
+
+        # Hole alle QSOs (ohne Portable-Stationen)
         query = """
             SELECT
                 callsign,
@@ -668,16 +674,6 @@ class QlogDatabase:
             FROM contacts
             WHERE callsign IS NOT NULL
             AND callsign NOT LIKE '%/%'
-            AND (
-                (callsign LIKE 'DR%')
-                OR (callsign LIKE 'DL0%' OR callsign LIKE 'DA0%' OR callsign LIKE 'DF0%'
-                    OR callsign LIKE 'DK0%' OR callsign LIKE 'DO0%' OR callsign LIKE 'DB0%'
-                    OR callsign LIKE 'DC0%' OR callsign LIKE 'DD0%' OR callsign LIKE 'DE0%'
-                    OR callsign LIKE 'DG0%' OR callsign LIKE 'DH0%' OR callsign LIKE 'DJ0%'
-                    OR callsign LIKE 'DM0%' OR callsign LIKE 'DN0%' OR callsign LIKE 'DP0%')
-                OR (callsign GLOB 'D[LABFKOGCDEHJMNP][0-9][0-9]*')
-                OR (callsign GLOB 'D[LABFKOGCDEHJMNP][1-9][0-9]*[0-9]*')
-            )
         """
         params = []
 
@@ -699,7 +695,86 @@ class QlogDatabase:
 
         query += " ORDER BY start_time DESC"
 
-        return self.execute_query(query, tuple(params))
+        all_qsos = self.execute_query(query, tuple(params))
+
+        # Bekannte Präfixe, die mit einer Ziffer enden (ITU-Standard)
+        # Diese müssen von der "mehrere Ziffern"-Regel ausgenommen werden
+        KNOWN_DIGIT_PREFIXES = {
+            # Format: Präfix mit Ziffer, z.B. 'A6' für UAE
+            'A4', 'A6', 'A7', 'A9',  # Oman, UAE, Qatar, Bahrain
+            'C3',                     # Andorra
+            'E7',                     # Bosnien-Herzegowina
+            'S5',                     # Slowenien
+            'T7',                     # San Marino
+            'V5',                     # Namibia
+            'Z3',                     # Nordmazedonien
+            'Z6',                     # Kosovo
+            '2E', '2M', '2W',        # UK (Foundation, Intermediate)
+            '3Z',                     # Polen (special)
+            '4J', '4K', '4L', '4X', '4Z',  # Azerbaijan, Georgia, Israel
+            '5B', '5C', '5H', '5N', '5R', '5T', '5U', '5V', '5W', '5X', '5Z',
+            '6O', '6V', '6W', '6Y',
+            '7P', '7Q', '7X',
+            '8P', '8Q', '8R', '8S',
+            '9A', '9H', '9J', '9K', '9L', '9M', '9N', '9Q', '9U', '9V', '9X', '9Y'
+        }
+
+        # Filtere Sonderrufzeichen in Python
+        special_qsos = []
+
+        for qso in all_qsos:
+            call = qso['callsign']
+
+            # Analysiere Rufzeichen-Struktur
+            # Finde Suffix (nur Buchstaben am Ende)
+            suffix_match = re.search(r'([A-Z]+)$', call)
+            if not suffix_match:
+                continue
+
+            suffix = suffix_match.group(1)
+            prefix_and_number = call[:-len(suffix)]
+
+            # Kriterium 1: Suffix länger als 3 Buchstaben -> Sonderrufzeichen
+            if len(suffix) > 3:
+                special_qsos.append(qso)
+                continue
+
+            # Kriterium 2: Mehrere aufeinanderfolgende Ziffern im Distrikt-Bereich
+            # Finde alle Ziffern-Sequenzen
+            digit_sequences = re.findall(r'\d+', prefix_and_number)
+
+            if not digit_sequences:
+                continue
+
+            # Finde die LETZTE (rechteste) Ziffern-Sequenz -> Das ist die Distrikt-Nummer
+            last_digit_seq = digit_sequences[-1]
+            last_digit_pos = prefix_and_number.rfind(last_digit_seq)
+            prefix = prefix_and_number[:last_digit_pos]
+
+            # Prüfe die Länge der Distrikt-Nummer
+            district_len = len(last_digit_seq)
+
+            if district_len == 1:
+                # Normale 1-Ziffer Distrikt-Nummer -> Normal
+                continue
+            elif district_len == 2:
+                # 2 Ziffern: Könnte Präfix+Distrikt sein (z.B. A6+5) oder echtes Sonder (DL+75)
+                # Prüfe ob [Präfix + erste Ziffer der Sequenz] ein bekanntes Präfix ist
+                potential_prefix = prefix + last_digit_seq[0]
+
+                if potential_prefix in KNOWN_DIGIT_PREFIXES:
+                    # z.B. A65RW: prefix="A", last_digit_seq="65", potential_prefix="A6"
+                    # A6 ist bekanntes Präfix -> Normal (A6 + 5 + RW)
+                    continue
+                else:
+                    # z.B. DL75DARC: prefix="DL", last_digit_seq="75", potential_prefix="DL7"
+                    # DL7 ist KEIN bekanntes Präfix -> Sonderrufzeichen (DL + 75 + DARC)
+                    special_qsos.append(qso)
+            else:
+                # 3+ Ziffern -> definitiv Sonderrufzeichen (z.B. DL2025W, 9A100IARU)
+                special_qsos.append(qso)
+
+        return special_qsos
 
     def get_all_bands(self) -> List[str]:
         """

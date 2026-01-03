@@ -23,6 +23,7 @@ class TableView:
         self.scrollbar_x = None
         self.sort_reverse = {}
         self.current_columns = []
+        self.base_label = ""  # Basis-Label ohne Anzahl
 
         self._create_widgets()
 
@@ -75,6 +76,13 @@ class TableView:
         else:
             self.tree.unbind('<Double-Button-1>')
 
+        # Update Label mit Anzahl der Einträge
+        if self.base_label:
+            count = len(data)
+            label_with_count = f"{self.base_label} ({count})"
+            if isinstance(self.parent_frame, ttk.LabelFrame):
+                self.parent_frame.config(text=label_with_count)
+
     def _sort_column(self, col):
         """
         Sortiert die Tabelle nach einer Spalte
@@ -122,8 +130,9 @@ class TableView:
         Setzt das Label des Parent-Frames (falls es ein LabelFrame ist)
 
         Args:
-            text: Neuer Label-Text
+            text: Neuer Label-Text (ohne Anzahl, die wird in populate() hinzugefügt)
         """
+        self.base_label = text
         if isinstance(self.parent_frame, ttk.LabelFrame):
             self.parent_frame.config(text=text)
 

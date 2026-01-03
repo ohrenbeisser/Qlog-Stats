@@ -232,7 +232,8 @@ class QlogStatsApp:
 
     def _show_special(self):
         """Zeigt Sonderrufzeichen an"""
-        if self.statistics:
+        if self.date_filter and self.statistics:
+            self.date_filter.show_search_row()
             self.statistics.show_statistics('special')
 
     def _show_qsl_sent(self):
