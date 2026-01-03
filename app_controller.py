@@ -41,6 +41,8 @@ from stats_exporter import StatsExporter
 
 from ui import MainWindow, TableView, PlotView
 from features import Statistics, DateFilter, ExportHandler, QRZIntegration
+from features.query_builder import QueryBuilderDialog
+from query_manager import QueryManager
 
 
 class QlogStatsApp:
@@ -59,6 +61,7 @@ class QlogStatsApp:
         self.config = ConfigManager()
         self.db = None
         self.exporter = None
+        self.query_manager = QueryManager()  # Query Manager für benutzerdefinierte Abfragen
 
         # UI-Komponenten
         self.main_window = None
@@ -107,7 +110,8 @@ class QlogStatsApp:
             'export_txt': self._export_txt,
             'show_about': self._show_about,
             'new_query': self._new_query,
-            'run_query': self._run_query
+            'run_query': self._run_query,
+            'manage_queries': self._manage_queries
         }
 
         # Hauptfenster erstellen
@@ -174,6 +178,9 @@ class QlogStatsApp:
 
             # Erste Statistik anzeigen
             self.root.after(200, lambda: self.statistics.show_statistics('country'))
+
+            # Lade gespeicherte Abfragen ins Menü
+            self._update_queries_menu()
 
         except Exception as e:
             messagebox.showerror("Fehler", f"Fehler beim Laden der Datenbank:\n{str(e)}")
@@ -384,13 +391,72 @@ class QlogStatsApp:
 
     def _new_query(self):
         """Öffnet den Dialog für eine neue Abfrage"""
-        # TODO: Query Builder Dialog implementieren
-        messagebox.showinfo("Info", "Query Builder wird in der nächsten Session implementiert.\n\nGrundstruktur ist bereits vorbereitet!")
+        dialog = QueryBuilderDialog(self.root, self.query_manager)
+        result = dialog.show()
+
+        if result:
+            # Aktualisiere Menü mit neuer Abfrage
+            self._update_queries_menu()
 
     def _run_query(self, query_id):
         """Führt eine gespeicherte Abfrage aus"""
-        # TODO: Abfrage laden und ausführen
-        messagebox.showinfo("Info", f"Abfrage-Ausführung (ID: {query_id}) wird in der nächsten Session implementiert.")
+        query = self.query_manager.get_query(query_id)
+
+        if not query:
+            messagebox.showerror("Fehler", "Abfrage nicht gefunden.")
+            return
+
+        try:
+            # Generiere SQL
+            from features.query_builder import QueryBuilderDialog
+            sql = QueryBuilderDialog._generate_sql(None, query)
+
+            # Führe Abfrage aus
+            results = self.db.execute_query(sql)
+
+            # Bestimme Spalten
+            builder = query.get('builder', {})
+            columns = builder.get('columns', [])
+
+            # Wenn start_time in Spalten, ersetze durch date und time
+            if 'start_time' in columns:
+                display_columns = []
+                for col in columns:
+                    if col == 'start_time':
+                        display_columns.extend(['date', 'time'])
+                    else:
+                        display_columns.append(col)
+            else:
+                display_columns = columns
+
+            # Zeige Ergebnisse
+            self.table_view.set_label(query.get('name', 'Abfrage'))
+            self.table_view.populate(display_columns, results)
+
+            # Verstecke Plot
+            try:
+                self.main_window.get_paned_window().forget(self.plot_view.parent_frame)
+            except:
+                pass
+
+            # Update Export-Handler
+            if self.export_handler:
+                self.export_handler.set_current_data(results, 'custom_query')
+
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Ausführen der Abfrage:\n{str(e)}")
+
+    def _manage_queries(self):
+        """Öffnet den Dialog zur Verwaltung von Abfragen"""
+        from features.query_manager_dialog import QueryManagerDialog
+        dialog = QueryManagerDialog(self.root, self.query_manager,
+                                    on_change=self._update_queries_menu)
+        dialog.show()
+
+    def _update_queries_menu(self):
+        """Aktualisiert das Abfragen-Menü mit gespeicherten Abfragen"""
+        queries = self.query_manager.get_query_names()
+        self.main_window.update_queries_menu(queries)
 
     def run(self):
         """Startet die Anwendung"""

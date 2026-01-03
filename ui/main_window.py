@@ -125,6 +125,8 @@ class MainWindow:
         menubar.add_cascade(label="Abfragen", menu=self.queries_menu)
         self.queries_menu.add_command(label="Neue Abfrage",
                                      command=self.callbacks.get('new_query'))
+        self.queries_menu.add_command(label="Abfragen verwalten...",
+                                     command=self.callbacks.get('manage_queries'))
         self.queries_menu.add_separator()
         # Gespeicherte Abfragen werden hier dynamisch hinzugefügt
 
@@ -195,11 +197,11 @@ class MainWindow:
         if not self.queries_menu:
             return
 
-        # Entferne alle Einträge nach dem Separator (Index 2+)
-        # Index 0: "Neue Abfrage", Index 1: Separator
+        # Entferne alle Einträge nach dem Separator (Index 3+)
+        # Index 0: "Neue Abfrage", Index 1: "Abfragen verwalten...", Index 2: Separator
         menu_length = self.queries_menu.index('end')
-        if menu_length is not None and menu_length >= 2:
-            self.queries_menu.delete(2, menu_length)
+        if menu_length is not None and menu_length >= 3:
+            self.queries_menu.delete(3, menu_length)
 
         # Füge gespeicherte Abfragen hinzu
         for query_id, query_name in queries:
