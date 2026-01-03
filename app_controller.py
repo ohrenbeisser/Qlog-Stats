@@ -105,7 +105,9 @@ class QlogStatsApp:
             'show_eqsl_received': self._show_eqsl_received,
             'export_csv': self._export_csv,
             'export_txt': self._export_txt,
-            'show_about': self._show_about
+            'show_about': self._show_about,
+            'new_query': self._new_query,
+            'run_query': self._run_query
         }
 
         # Hauptfenster erstellen
@@ -379,6 +381,16 @@ class QlogStatsApp:
         x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (about_window.winfo_width() // 2)
         y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (about_window.winfo_height() // 2)
         about_window.geometry(f"+{x}+{y}")
+
+    def _new_query(self):
+        """Öffnet den Dialog für eine neue Abfrage"""
+        # TODO: Query Builder Dialog implementieren
+        messagebox.showinfo("Info", "Query Builder wird in der nächsten Session implementiert.\n\nGrundstruktur ist bereits vorbereitet!")
+
+    def _run_query(self, query_id):
+        """Führt eine gespeicherte Abfrage aus"""
+        # TODO: Abfrage laden und ausführen
+        messagebox.showinfo("Info", f"Abfrage-Ausführung (ID: {query_id}) wird in der nächsten Session implementiert.")
 
     def run(self):
         """Startet die Anwendung"""
