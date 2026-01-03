@@ -51,6 +51,7 @@ class MainWindow:
         self.paned_window = None
         self.table_frame = None
         self.plot_frame = None
+        self.queries_menu = None  # Referenz zum Abfragen-Menü
 
         self._create_menu()
         self._create_layout()
@@ -119,6 +120,14 @@ class MainWindow:
         qsl_menu.add_command(label="eQSL erhalten",
                             command=self.callbacks.get('show_eqsl_received'))
 
+        # Abfragen-Menü
+        self.queries_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Abfragen", menu=self.queries_menu)
+        self.queries_menu.add_command(label="Neue Abfrage",
+                                     command=self.callbacks.get('new_query'))
+        self.queries_menu.add_separator()
+        # Gespeicherte Abfragen werden hier dynamisch hinzugefügt
+
         export_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Export", menu=export_menu)
         export_menu.add_command(label="Als CSV exportieren",
@@ -175,3 +184,26 @@ class MainWindow:
     def get_plot_frame(self):
         """Gibt den Plot-Frame zurück"""
         return self.plot_frame
+
+    def update_queries_menu(self, queries):
+        """
+        Aktualisiert das Abfragen-Menü mit gespeicherten Abfragen
+
+        Args:
+            queries: Liste von (id, name) Tupeln
+        """
+        if not self.queries_menu:
+            return
+
+        # Entferne alle Einträge nach dem Separator (Index 2+)
+        # Index 0: "Neue Abfrage", Index 1: Separator
+        menu_length = self.queries_menu.index('end')
+        if menu_length is not None and menu_length >= 2:
+            self.queries_menu.delete(2, menu_length)
+
+        # Füge gespeicherte Abfragen hinzu
+        for query_id, query_name in queries:
+            self.queries_menu.add_command(
+                label=query_name,
+                command=lambda qid=query_id: self.callbacks.get('run_query')(qid)
+            )
