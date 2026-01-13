@@ -39,7 +39,7 @@ from config_manager import ConfigManager
 from database import QlogDatabase
 from stats_exporter import StatsExporter
 
-from ui import MainWindow, TableView, PlotView
+from ui import MainWindow, TableView, PlotView, SettingsDialog
 from features import Statistics, DateFilter, ExportHandler, QRZIntegration
 from features.query_builder import QueryBuilderDialog
 from query_manager import QueryManager
@@ -85,7 +85,7 @@ class QlogStatsApp:
         # WICHTIG: Verwende Methoden statt Lambdas, da self.statistics/export_handler
         # zum Zeitpunkt der Callback-Erstellung noch None sind
         callbacks = {
-            'change_db_path': self._change_db_path,
+            'show_settings': self._show_settings,
             'quit': self.root.quit,
             'show_country': self._show_country,
             'show_band': self._show_band,
@@ -141,7 +141,9 @@ class QlogStatsApp:
             self.plot_view,
             self.date_filter,
             self.main_window.get_paned_window(),
-            self.export_handler
+            self.export_handler,
+            self.config,
+            self.root
         )
 
         # Such-Callback verbinden
@@ -185,18 +187,26 @@ class QlogStatsApp:
         except Exception as e:
             messagebox.showerror("Fehler", f"Fehler beim Laden der Datenbank:\n{str(e)}")
 
-    def _change_db_path(self):
-        """Dialog zum Ändern des Datenbank-Pfads"""
-        new_path = filedialog.askopenfilename(
-            title="Qlog-Datenbank auswählen",
-            filetypes=[("SQLite Datenbank", "*.db"), ("Alle Dateien", "*.*")]
+    def _show_settings(self):
+        """Zeigt den Einstellungs-Dialog an"""
+        dialog = SettingsDialog(
+            self.root,
+            self.config,
+            on_db_change_callback=self._on_db_path_changed,
+            on_columns_change_callback=self._on_columns_changed
         )
+        dialog.show()
 
-        if new_path:
-            self.config.set_db_path(new_path)
-            if self.db:
-                self.db.disconnect()
-            self._init_database()
+    def _on_db_path_changed(self):
+        """Callback wenn der Datenbank-Pfad geändert wurde"""
+        if self.db:
+            self.db.disconnect()
+        self._init_database()
+
+    def _on_columns_changed(self):
+        """Callback wenn die Spalten-Konfiguration geändert wurde"""
+        if self.statistics:
+            self.statistics.reload_columns()
 
     def _on_filter_change(self):
         """Callback wenn sich der Datumsfilter ändert"""

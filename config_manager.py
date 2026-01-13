@@ -5,6 +5,7 @@ Verwaltet die Konfigurationsdatei (INI-Format)
 
 import configparser
 import os
+import json
 from pathlib import Path
 
 
@@ -44,6 +45,12 @@ class ConfigManager:
             'window_width': '1200',
             'window_height': '800',
             'theme': 'default'
+        }
+
+        # Standard-Spalten für Detail-Tabellen
+        from table_columns import DEFAULT_COLUMNS
+        self.config['TableColumns'] = {
+            'detail_columns': json.dumps(DEFAULT_COLUMNS)
         }
 
         self.save_config()
@@ -91,4 +98,47 @@ class ConfigManager:
             self.config['GUI'] = {}
         self.config['GUI']['window_width'] = str(width)
         self.config['GUI']['window_height'] = str(height)
+        self.save_config()
+
+    def get_detail_columns(self):
+        """
+        Gibt die konfigurierten Spalten für Detail-Tabellen zurück
+
+        Returns:
+            list: Liste von Spalten-IDs
+        """
+        from table_columns import DEFAULT_COLUMNS
+
+        # Hole JSON-String aus Config
+        columns_json = self.config.get('TableColumns', 'detail_columns',
+                                      fallback=json.dumps(DEFAULT_COLUMNS))
+
+        try:
+            columns = json.loads(columns_json)
+            # Sicherstellen dass callsign immer an erster Stelle ist
+            if 'callsign' in columns:
+                columns.remove('callsign')
+            columns.insert(0, 'callsign')
+            return columns
+        except json.JSONDecodeError:
+            # Fallback auf Standard-Spalten bei Parse-Fehler
+            return DEFAULT_COLUMNS.copy()
+
+    def set_detail_columns(self, columns):
+        """
+        Speichert die Spalten für Detail-Tabellen
+
+        Args:
+            columns: Liste von Spalten-IDs
+        """
+        # Sicherstellen dass callsign immer an erster Stelle ist
+        columns_copy = columns.copy() if isinstance(columns, list) else list(columns)
+        if 'callsign' in columns_copy:
+            columns_copy.remove('callsign')
+        columns_copy.insert(0, 'callsign')
+
+        if 'TableColumns' not in self.config:
+            self.config['TableColumns'] = {}
+
+        self.config['TableColumns']['detail_columns'] = json.dumps(columns_copy)
         self.save_config()

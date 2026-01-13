@@ -637,7 +637,8 @@ class QlogDatabase:
                               end_date: Optional[str] = None,
                               band: Optional[str] = None,
                               mode: Optional[str] = None,
-                              country: Optional[str] = None) -> List[Dict[str, Any]]:
+                              country: Optional[str] = None,
+                              columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit Sonderrufzeichen zurück (weltweit)
 
@@ -660,17 +661,19 @@ class QlogDatabase:
             Liste mit QSOs von Sonderrufzeichen
         """
         import re
+        from table_columns import build_select_clause
+
+        # Bestimme die SELECT-Spalten
+        if columns:
+            select_clause = build_select_clause(columns)
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, dxcc"
 
         # Hole alle QSOs (ohne Portable-Stationen)
-        query = """
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country,
-                dxcc
+                {select_clause}
             FROM contacts
             WHERE callsign IS NOT NULL
             AND callsign NOT LIKE '%/%'
@@ -830,7 +833,8 @@ class QlogDatabase:
                         end_date: Optional[str] = None,
                         band: Optional[str] = None,
                         mode: Optional[str] = None,
-                        country: Optional[str] = None) -> List[Dict[str, Any]]:
+                        country: Optional[str] = None,
+                        columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Sucht nach Rufzeichen (beginnend oder Teilstring)
 
@@ -847,16 +851,19 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details (callsign, date, time, band, mode, country)
         """
         self.connect()
+        from table_columns import build_select_clause
+
+        # Bestimme die SELECT-Spalten
+        if columns:
+            select_clause = build_select_clause(columns)
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
 
         # Basis-Query
-        query = """
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country
+                {select_clause}
             FROM contacts
             WHERE 1=1
         """
@@ -908,7 +915,8 @@ class QlogDatabase:
                     end_date: Optional[str] = None,
                     band: Optional[str] = None,
                     mode: Optional[str] = None,
-                    country: Optional[str] = None) -> List[Dict[str, Any]]:
+                    country: Optional[str] = None,
+                    columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit versendeten QSL-Karten zurück
 
@@ -923,16 +931,18 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten (mit qsl_sdate für qsl_date)
+        if columns:
+            select_clause = build_select_clause(columns, qsl_date_field='qsl_sdate')
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, qsl_sdate as qsl_date"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country,
-                qsl_sdate as qsl_date
+                {select_clause}
             FROM contacts
             WHERE qsl_sdate IS NOT NULL
         """
@@ -967,7 +977,8 @@ class QlogDatabase:
                         end_date: Optional[str] = None,
                         band: Optional[str] = None,
                         mode: Optional[str] = None,
-                        country: Optional[str] = None) -> List[Dict[str, Any]]:
+                        country: Optional[str] = None,
+                        columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit erhaltenen QSL-Karten zurück
 
@@ -977,21 +988,24 @@ class QlogDatabase:
             band: Band-Filter
             mode: Mode-Filter
             country: Land-Filter
+            columns: Optionale Spaltenliste
 
         Returns:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten (mit qsl_rdate für qsl_date)
+        if columns:
+            select_clause = build_select_clause(columns, qsl_date_field='qsl_rdate')
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, qsl_rdate as qsl_date"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country,
-                qsl_rdate as qsl_date
+                {select_clause}
             FROM contacts
             WHERE qsl_rdate IS NOT NULL
         """
@@ -1026,7 +1040,8 @@ class QlogDatabase:
                          end_date: Optional[str] = None,
                          band: Optional[str] = None,
                          mode: Optional[str] = None,
-                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+                         country: Optional[str] = None,
+                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit angeforderten QSL-Karten zurück
 
@@ -1036,20 +1051,24 @@ class QlogDatabase:
             band: Band-Filter
             mode: Mode-Filter
             country: Land-Filter
+            columns: Optionale Spaltenliste
 
         Returns:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten
+        if columns:
+            select_clause = build_select_clause(columns)
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country
+                {select_clause}
             FROM contacts
             WHERE qsl_rcvd = 'R'
         """
@@ -1084,7 +1103,8 @@ class QlogDatabase:
                       end_date: Optional[str] = None,
                       band: Optional[str] = None,
                       mode: Optional[str] = None,
-                      country: Optional[str] = None) -> List[Dict[str, Any]]:
+                      country: Optional[str] = None,
+                      columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit zu versendenden QSL-Karten zurück
 
@@ -1094,20 +1114,24 @@ class QlogDatabase:
             band: Band-Filter
             mode: Mode-Filter
             country: Land-Filter
+            columns: Optionale Spaltenliste
 
         Returns:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten
+        if columns:
+            select_clause = build_select_clause(columns)
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country
+                {select_clause}
             FROM contacts
             WHERE qsl_sent = 'Q'
         """
@@ -1142,7 +1166,8 @@ class QlogDatabase:
                          end_date: Optional[str] = None,
                          band: Optional[str] = None,
                          mode: Optional[str] = None,
-                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+                         country: Optional[str] = None,
+                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit LotW-Bestätigungen zurück
 
@@ -1152,21 +1177,24 @@ class QlogDatabase:
             band: Band-Filter
             mode: Mode-Filter
             country: Land-Filter
+            columns: Optionale Spaltenliste
 
         Returns:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten (mit lotw_qslrdate für qsl_date)
+        if columns:
+            select_clause = build_select_clause(columns, qsl_date_field='lotw_qslrdate')
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, lotw_qslrdate as qsl_date"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country,
-                lotw_qslrdate as qsl_date
+                {select_clause}
             FROM contacts
             WHERE lotw_qsl_rcvd = 'Y'
         """
@@ -1201,7 +1229,8 @@ class QlogDatabase:
                          end_date: Optional[str] = None,
                          band: Optional[str] = None,
                          mode: Optional[str] = None,
-                         country: Optional[str] = None) -> List[Dict[str, Any]]:
+                         country: Optional[str] = None,
+                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Gibt alle QSOs mit eQSL-Bestätigungen zurück
 
@@ -1211,21 +1240,24 @@ class QlogDatabase:
             band: Band-Filter
             mode: Mode-Filter
             country: Land-Filter
+            columns: Optionale Spaltenliste
 
         Returns:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
+        from table_columns import build_select_clause
 
-        query = """
+        # Bestimme die SELECT-Spalten (mit eqsl_qslrdate für qsl_date)
+        if columns:
+            select_clause = build_select_clause(columns, qsl_date_field='eqsl_qslrdate')
+        else:
+            # Fallback auf Standard-Spalten
+            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, eqsl_qslrdate as qsl_date"
+
+        query = f"""
             SELECT
-                callsign,
-                DATE(start_time) as date,
-                TIME(start_time) as time,
-                band,
-                mode,
-                country,
-                eqsl_qslrdate as qsl_date
+                {select_clause}
             FROM contacts
             WHERE eqsl_qsl_rcvd = 'Y'
         """

@@ -17,7 +17,7 @@ class MainWindow:
         Args:
             root: Tkinter Root-Fenster
             callbacks: Dictionary mit Callback-Funktionen für Menü-Items:
-                - 'change_db_path': Callback für Datenbank-Pfad ändern
+                - 'show_settings': Callback für Einstellungen-Dialog
                 - 'quit': Callback für Beenden
                 - 'show_country': Callback für Länder-Statistik
                 - 'show_band': Callback für Band-Statistik
@@ -63,8 +63,8 @@ class MainWindow:
 
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Datei", menu=file_menu)
-        file_menu.add_command(label="Datenbank-Pfad ändern",
-                            command=self.callbacks.get('change_db_path'))
+        file_menu.add_command(label="Einstellungen",
+                            command=self.callbacks.get('show_settings'))
         file_menu.add_separator()
         file_menu.add_command(label="Beenden",
                             command=self.callbacks.get('quit'))

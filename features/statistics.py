@@ -33,12 +33,13 @@ Verwendung:
 
 from tkinter import messagebox
 from .qrz_integration import QRZIntegration
+from .context_menu import ContextMenu
 
 
 class Statistics:
     """Verwaltet alle Statistik-Anzeigen mit einheitlicher Logik"""
 
-    def __init__(self, db, table_view, plot_view, date_filter, paned_window, export_handler):
+    def __init__(self, db, table_view, plot_view, date_filter, paned_window, export_handler, config_manager, parent_window):
         """
         Initialisiert den Statistics Handler
 
@@ -49,6 +50,8 @@ class Statistics:
             date_filter: DateFilter Instanz
             paned_window: PanedWindow Widget
             export_handler: ExportHandler Instanz
+            config_manager: ConfigManager Instanz für Spalten-Konfiguration
+            parent_window: Parent-Fenster für Dialoge
         """
         self.db = db
         self.table_view = table_view
@@ -56,7 +59,13 @@ class Statistics:
         self.date_filter = date_filter
         self.paned_window = paned_window
         self.export_handler = export_handler
+        self.config_manager = config_manager
+        self.parent_window = parent_window
         self.current_type = None
+        self.context_menu = None
+
+        # Lade konfigurierte Detail-Spalten
+        self._detail_columns = self.config_manager.get_detail_columns()
 
         # Konfiguration für jeden Statistik-Typ
         self.stat_configs = {
@@ -107,7 +116,7 @@ class Statistics:
             'special': {
                 'db_method': 'get_special_callsigns',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen
                 'table_label': 'Sonderrufzeichen',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -170,7 +179,7 @@ class Statistics:
                 'plot_xlabel': 'Rufzeichen',
                 'plot_ylabel': 'Anzahl QSOs',
                 'show_plot': True,
-                'on_double_click': None
+                'on_double_click': 'qrz'
             },
             'top_days': {
                 'db_method': 'get_top_qso_days',
@@ -197,7 +206,7 @@ class Statistics:
             'callsign_search': {
                 'db_method': 'search_callsigns',
                 'db_params': {},  # wird dynamisch gefüllt
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen
                 'table_label': 'Suchergebnisse',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -208,7 +217,7 @@ class Statistics:
             'qsl_sent': {
                 'db_method': 'get_qsl_sent',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen (mit qsl_date)
                 'table_label': 'Versendete QSL-Karten',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -219,7 +228,7 @@ class Statistics:
             'qsl_received': {
                 'db_method': 'get_qsl_received',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen (mit qsl_date)
                 'table_label': 'Erhaltene QSL-Karten',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -230,7 +239,7 @@ class Statistics:
             'qsl_requested': {
                 'db_method': 'get_qsl_requested',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen
                 'table_label': 'Angeforderte QSL-Karten',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -241,7 +250,7 @@ class Statistics:
             'qsl_queued': {
                 'db_method': 'get_qsl_queued',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen
                 'table_label': 'Zu versendende QSL-Karten',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -252,7 +261,7 @@ class Statistics:
             'lotw_received': {
                 'db_method': 'get_lotw_received',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen (mit qsl_date)
                 'table_label': 'LotW-Bestätigungen',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -263,7 +272,7 @@ class Statistics:
             'eqsl_received': {
                 'db_method': 'get_eqsl_received',
                 'db_params': {},
-                'columns': ['callsign', 'date', 'time', 'band', 'mode', 'country', 'qsl_date', 'qrz'],
+                'columns': None,  # Wird dynamisch geladen (mit qsl_date)
                 'table_label': 'eQSL-Bestätigungen',
                 'plot_title': None,
                 'plot_xlabel': None,
@@ -326,9 +335,30 @@ class Statistics:
                 # Bei Mode-Statistik: Kein Mode-Filter
                 filter_params.pop('mode', None)
 
-            # 4. Daten aus Datenbank abrufen
+            # 4. Spalten für Detail-Tabellen dynamisch bestimmen
+            # QSL-Tabellen mit qsl_date
+            qsl_with_date = ['qsl_sent', 'qsl_received', 'lotw_received', 'eqsl_received']
+            # QSL-Tabellen ohne qsl_date
+            qsl_without_date = ['qsl_requested', 'qsl_queued']
+            # Alle Detail-Tabellen
+            detail_tables = ['special', 'callsign_search'] + qsl_with_date + qsl_without_date
+
+            display_columns = config['columns']
+            if display_columns is None and stat_type in detail_tables:
+                # Dynamisch aus Config laden
+                display_columns = self._detail_columns.copy()
+
+                # Füge qsl_date hinzu für QSL-Tabellen mit Datum
+                if stat_type in qsl_with_date and 'qsl_date' not in display_columns:
+                    display_columns.append('qsl_date')
+
+            # 5. Daten aus Datenbank abrufen
             db_method = getattr(self.db, config['db_method'])
             params = {**config['db_params'], **filter_params}
+
+            # Füge columns-Parameter für Detail-Tabellen hinzu
+            if stat_type in detail_tables:
+                params['columns'] = display_columns
 
             # Spezialbehandlung für Rufzeichen-Suche
             if stat_type == 'callsign_search':
@@ -368,23 +398,30 @@ class Statistics:
 
                     data = filtered_data
 
-            # 4. Spezielle Datenaufbereitung für QRZ-Links
-            # Füge 'Link' Text in QRZ-Spalte ein für Sonderrufzeichen, Suche und QSL-Ansichten
-            qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
-                        'lotw_received', 'eqsl_received']
-            if stat_type in ['special', 'callsign_search'] + qsl_types:
-                for row in data:
-                    row['qrz'] = 'Link'
-
-            # 5. Event-Handler konfigurieren (z.B. Doppelklick für QRZ-Links)
+            # 6. Event-Handler konfigurieren (z.B. Doppelklick für QRZ-Links)
             on_double_click = None
             if config['on_double_click'] == 'qrz':
                 on_double_click = QRZIntegration.create_callback(self.table_view.get_tree())
 
-            # 6. Tabelle mit Daten füllen
-            self.table_view.populate(config['columns'], data, on_double_click=on_double_click)
+            # 7. Tabelle mit Daten füllen
+            # Verwende display_columns für Detail-Tabellen, sonst config['columns']
+            table_columns = display_columns if display_columns else config['columns']
+            self.table_view.populate(table_columns, data, on_double_click=on_double_click)
 
-            # 7. Diagramm-Anzeige steuern
+            # 7b. Aktiviere Kontextmenü für Detail-Tabellen
+            if stat_type in detail_tables:
+                # Erstelle oder aktualisiere Kontextmenü
+                if not self.context_menu:
+                    self.context_menu = ContextMenu(
+                        self.table_view.get_tree(),
+                        self.db,
+                        self.parent_window
+                    )
+            else:
+                # Deaktiviere Kontextmenü für Statistik-Tabellen
+                self.context_menu = None
+
+            # 8. Diagramm-Anzeige steuern
             if config['show_plot']:
                 # Diagramm anzeigen (falls versteckt, wieder einblenden)
                 if self.plot_view.parent_frame not in self.paned_window.panes():
@@ -408,14 +445,14 @@ class Statistics:
                 except:
                     pass  # Panel war bereits entfernt
 
-            # 8. Aktuellen Zustand speichern für Export und Refresh
+            # 9. Aktuellen Zustand speichern für Export und Refresh
             self.current_type = stat_type
             self.export_handler.set_current_data(data, stat_type)
 
-            # 9. QSO-Zähler aktualisieren
+            # 10. QSO-Zähler aktualisieren
             self.date_filter.update_info()
 
-            # 10. Bei Rufzeichen-Suche und QSL-Ansichten: Ergebnis-Anzahl aktualisieren
+            # 11. Bei Rufzeichen-Suche und QSL-Ansichten: Ergebnis-Anzahl aktualisieren
             qsl_types = ['qsl_sent', 'qsl_received', 'qsl_requested', 'qsl_queued',
                         'lotw_received', 'eqsl_received']
             if stat_type in ['callsign_search'] + qsl_types:
@@ -433,3 +470,10 @@ class Statistics:
         """Aktualisiert die aktuelle Statistik-Anzeige"""
         if self.current_type:
             self.show_statistics(self.current_type)
+
+    def reload_columns(self):
+        """Lädt die konfigurierten Spalten neu (nach Änderung in Einstellungen)"""
+        self._detail_columns = self.config_manager.get_detail_columns()
+        # Aktualisiere die aktuelle Ansicht, falls eine Detail-Tabelle angezeigt wird
+        if self.current_type:
+            self.refresh_current()
