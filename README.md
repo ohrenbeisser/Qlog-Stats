@@ -1,223 +1,289 @@
-# Qlog-Stats
+# Qlog-Stats - QSO Statistik Auswertung
 
-Statistik-Auswertungs-Tool für Qlog (Amateur Radio Logging Software)
+**Statistik- und Analyse-Tool für QLog (Amateur Radio Logging)**
 
-## Übersicht
+Qlog-Stats ist eine Desktop-Anwendung zur übersichtlichen Auswertung Ihrer QSO-Daten aus QLog. Mit umfangreichen Statistiken, interaktiven Diagrammen und flexiblen Export-Funktionen behalten Sie den Überblick über Ihre Funkaktivitäten.
 
-Qlog-Stats ist ein Python-basiertes Desktop-Tool zur Analyse und Visualisierung von QSO-Daten aus der Qlog-Datenbank. Es bietet sortierbare Tabellen, Diagramme und Export-Funktionen für verschiedene Statistik-Ansichten.
+---
 
-## Features
+## Funktionsübersicht
 
-- **Statistik-Anzeigen**
-  - QSOs nach Ländern (Top 20)
-  - QSOs nach Bändern
-  - QSOs nach Modes
-  - QSOs nach Jahren
-  - Sonderrufzeichen-Erkennung (Deutsche Stationen)
+### Statistiken & Auswertungen
+- **Länder-Statistik** - Welche Länder Sie gearbeitet haben (Top 20 mit Diagramm)
+- **Band-Statistik** - Aktivität auf allen Amateurfunk-Bändern
+- **Mode-Statistik** - Betriebsarten-Auswertung (SSB, CW, FT8, etc.)
+- **Zeit-Statistiken** - Nach Jahr, Monat, Wochentag, Tag, Stunde
+- **Propagations-Daten** - K-Index, A-Index und SFI im Zeitverlauf
+- **Top/Flop QSO-Tage** - Ihre aktivsten und ruhigsten Tage
+- **Rufzeichen-Statistik** - Häufig gearbeitete Stationen
+- **Sonderrufzeichen** - Automatische Erkennung von Event-Stationen
 
-- **Interaktive Funktionen**
-  - Sortierbare Tabellen (Klick auf Spalten-Header)
-  - Datumsfilter mit Bereichsauswahl
-  - Matplotlib-Diagramme
-  - QRZ.com Integration (Doppelklick auf Rufzeichen)
+### QSL-Verwaltung
+- Versendete und empfangene Karten
+- Angeforderte und zu versendende Karten
+- LotW-Bestätigungen (Logbook of The World)
+- eQSL-Bestätigungen
 
-- **Export**
-  - CSV-Format
-  - Formatiertes TXT-Format mit Zeitstempel
+### Suche & Filter
+- **Rufzeichen-Suche** - Schnelle Suche nach bestimmten Calls
+- **Datum-Filter** - Zeitraum einschränken mit Schnellauswahl
+- **Band/Mode/Land-Filter** - Kombinierbare Filter
+- **Benutzerdefinierte Abfragen** - SQL-Query-Builder für individuelle Auswertungen
 
-## Projekt-Struktur
+### Darstellung
+- **Modernes Design** - Azure Theme in Hell/Dunkel-Modus
+- **Interaktive Diagramme** - Balken- und Liniendiagramme
+- **Sortierbare Tabellen** - Klick auf Spaltenköpfe zum Sortieren
+- **Anpassbare Spalten** - Wählen Sie, welche Daten angezeigt werden
 
-```
-Qlog-Stats/
-├── main.py                      # Einstiegspunkt (19 Zeilen)
-├── app_controller.py            # Haupt-Controller (506 Zeilen)
-├── config.ini                   # Konfigurationsdatei
-│
-├── core/                        # Core-Layer (Daten & Konfiguration)
-│   ├── __init__.py
-│   ├── database.py              # SQLite DB-Zugriff (nur lesen)
-│   ├── config_manager.py        # INI-Konfiguration
-│   └── stats_exporter.py        # Export-Funktionen
-│
-├── ui/                          # UI-Layer
-│   ├── __init__.py
-│   ├── main_window.py           # Fenster-Layout & Menü
-│   ├── table_view.py            # Sortierbare Tabelle
-│   ├── plot_view.py             # Matplotlib-Integration
-│   ├── settings_dialog.py       # Einstellungs-Dialog
-│   └── table_columns.py         # Spalten-Definitionen
-│
-├── features/                    # Feature-Layer
-│   ├── __init__.py
-│   ├── statistics.py            # Vereinheitlichte Statistik-Logik
-│   ├── date_filter.py           # Datumsfilter
-│   ├── export_handler.py        # Export-Koordination
-│   ├── context_menu.py          # Kontextmenü & Detail-Dialog
-│   ├── query_builder.py         # SQL-Query-Builder
-│   ├── query_manager.py         # Query-Verwaltung
-│   ├── query_manager_dialog.py  # Query-Manager UI
-│   └── qrz_integration.py       # QRZ.com Links
-│
-└── setup/                       # Setup & Installation
-    ├── setup.sh                 # Linux/macOS Setup-Script
-    ├── setup.bat                # Windows Setup-Script
-    ├── run.sh                   # Start-Script
-    └── INSTALL.md               # Detaillierte Installationsanleitung
-```
+### Export & Integration
+- **CSV-Export** - Für Excel, LibreOffice Calc
+- **TXT-Export** - Formatierte Textdatei
+- **QRZ.com** - Rechtsklick öffnet QRZ.com Profil
+- **Google Maps** - Locator auf Karte anzeigen
 
-## Architektur
-
-Das Projekt folgt einer klaren Schichten-Architektur:
-
-### Core-Layer (Daten & Konfiguration)
-- **QlogDatabase**: Read-only SQLite-Zugriff auf Qlog-Datenbank
-- **ConfigManager**: INI-Datei-Verwaltung und Einstellungen
-- **StatsExporter**: Export-Funktionalität für CSV/TXT
-
-### UI-Layer (Benutzeroberfläche)
-- **MainWindow**: Hauptfenster mit Menü, Layout und PanedWindow
-- **TableView**: Treeview mit intelligenter Sortierung
-- **PlotView**: Matplotlib-Canvas-Verwaltung
-- **SettingsDialog**: Einstellungs-Dialog für Konfiguration
-- **table_columns**: Spalten-Definitionen für Detail-Tabellen
-
-### Feature-Layer (Business-Logik)
-- **Statistics**: Zentrale Statistik-Logik (Strategy Pattern)
-- **DateFilter**: Filter-UI und Validierung
-- **ExportHandler**: CSV/TXT Export-Koordination
-- **ContextMenu**: Kontextmenü und Detail-Dialog
-- **QueryBuilder**: SQL-Query-Builder-Dialog
-- **QueryManager**: Verwaltung benutzerdefinierter Queries
-- **QueryManagerDialog**: UI für Query-Verwaltung
-- **QRZIntegration**: Browser-Integration für QRZ.com
+---
 
 ## Installation
 
 ### Voraussetzungen
+- Python 3.8 oder höher
+- QLog installiert mit vorhandener Datenbank
 
-- Python 3.8+
-- Tkinter (meist mit Python installiert)
-- Matplotlib
-
-### Setup
-
+### Linux / macOS
 ```bash
-# Virtual Environment erstellen
-python3 -m venv .venv
-
-# Aktivieren
-source .venv/bin/activate
-
-# Dependencies installieren
-pip install -r requirements.txt
-```
-
-### Konfiguration
-
-Die Datenbank-Pfad-Konfiguration erfolgt beim ersten Start über:
-**Datei → Datenbank-Pfad ändern**
-
-Standard-Pfad: `~/.local/share/hamradio/QLog/qlog.db`
-
-Alternativ kann `config.ini` manuell bearbeitet werden:
-
-```ini
-[Database]
-path = /home/user/.local/share/hamradio/QLog/qlog.db
-
-[Export]
-directory = ./exports
-
-[Window]
-width = 1200
-height = 700
-```
-
-## Verwendung
-
-```bash
-# Mit run.sh (empfohlen)
+cd /pfad/zu/Qlog-Stats
+./setup/setup.sh
 ./setup/run.sh
+```
 
-# Oder direkt
-source .venv/bin/activate
+### Windows
+```cmd
+cd C:\Pfad\zu\Qlog-Stats
+setup\setup.bat
+python main.py
+```
+
+### Manuell
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+pip install -r requirements.txt
 python3 main.py
 ```
 
-### Bedienung
+---
 
-1. **Statistik auswählen**: Menü → Statistik → [Typ wählen]
-2. **Datumsfilter**: Von/Bis Datum eingeben → "Filter anwenden"
-3. **Sortieren**: Klick auf Spalten-Header (▲/▼ zeigt Sortierung)
-4. **QRZ-Link**: Doppelklick auf Rufzeichen (bei Sonderrufzeichen)
-5. **Export**: Menü → Export → CSV/TXT
+## Erste Schritte
 
-## Sonderrufzeichen-Erkennung
+### 1. Datenbank konfigurieren
+Beim ersten Start oder über **Datei → Einstellungen**:
+- Qlog-Datenbank-Pfad angeben
+- Linux: `~/.local/share/hamradio/QLog/qlog.db`
+- Windows: `C:\Users\[Name]\AppData\Local\QLog\qlog.db`
 
-Deutsche Sonderrufzeichen werden erkannt durch:
-- DR-Präfix (Event-Stationen)
-- D*0-Präfix (Klubstationen: DL0, DA0, DF0, etc.)
-- Mehrere aufeinanderfolgende Ziffern (DL75DARC, DL2025W, etc.)
-- Rufzeichen mit "/" werden ausgeschlossen
+### 2. Theme wählen (optional)
+**Datei → Einstellungen → Erscheinungsbild**:
+- Theme: Azure (modern) oder Standard
+- Modus: Hell oder Dunkel
+- Neustart erforderlich nach Änderung
 
-## Entwicklung
+### 3. Filter einstellen
+Im Filter-Bereich oben:
+- **Von/Bis**: Datum per Hand oder Schnellauswahl
+- **Band/Mode/Land**: Einzelne oder kombinierte Filter
+- **"Filter anwenden"** klicken
 
-### Code-Stil
-- PEP 8 konforme Formatierung
-- Ausführliche Docstrings
-- Inline-Kommentare für komplexe Logik
-- Type Hints wo sinnvoll
+---
 
-### Refactoring-Historie
+## Bedienungsanleitung
 
-**Ursprüngliche Version:**
-- main.py: 552 Zeilen monolithischer Code
-- 5 fast identische Statistik-Methoden
+### Statistiken anzeigen
 
-**Refactored Version:**
-- main.py: 19 Zeilen (97% Reduktion!)
-- 10 spezialisierte Module
-- Vereinheitlichte Statistik-Logik (Strategy Pattern)
-- Klare Separation of Concerns
+Über **Menü → Statistik** die gewünschte Auswertung wählen:
 
-### Tests
+| Statistik | Beschreibung |
+|-----------|--------------|
+| Länder | QSO-Anzahl pro DXCC-Land mit Balkendiagramm |
+| Bänder | Verteilung auf Amateurfunk-Bänder |
+| Modes | Betriebsarten-Auswertung |
+| Jahre | Aktivität über die Jahre |
+| Monate | Monatliche Aktivität |
+| Wochentage | An welchen Tagen Sie am aktivsten sind |
+| Monatstage | Welcher Tag im Monat am aktivsten |
+| Stunden | Tageszeit-Verteilung (UTC) |
+| Rufzeichen | Häufig gearbeitete Stationen |
+| Top QSO-Tage | Ihre aktivsten Tage |
+| Flop QSO-Tage | Tage mit den wenigsten QSOs |
+| Propagation | K-Index, A-Index, SFI im Zeitverlauf |
 
-```bash
-# Syntax-Check
-python3 -m py_compile main.py app_controller.py core/*.py ui/*.py features/*.py
+**Tipp:** Doppelklick auf eine Zeile zeigt alle QSOs für diesen Eintrag.
 
-# Import-Test
-python3 -c "from app_controller import QlogStatsApp; print('OK')"
-```
+### Rufzeichen suchen
+
+**Rufzeichen → Suche** oder direkt über das Suchfeld:
+1. Rufzeichen eingeben (vollständig oder teilweise)
+2. **Teilstring**: Sucht überall im Callsign
+3. **Beginnend**: Sucht nur am Anfang
+4. Automatische Suche bei Eingabe
+
+**Sonderrufzeichen** (Menü: Rufzeichen → Sonderrufzeichen):
+- Zeigt Event-Stationen, Sonder-DOKs, Jubiläums-Rufzeichen
+- Erkennt automatisch ungewöhnliche Rufzeichen-Strukturen
+
+### QSL-Übersicht
+
+**Menü → QSL** für verschiedene QSL-Ansichten:
+
+| Ansicht | Zeigt |
+|---------|-------|
+| Karte versendet | QSLs die Sie verschickt haben |
+| Karte erhalten | Empfangene QSL-Bestätigungen |
+| Karte angefordert | Ausstehende Anfragen |
+| Karte zu versenden | In der Warteschlange |
+| LotW erhalten | Logbook of The World Bestätigungen |
+| eQSL erhalten | Elektronische QSLs |
+
+### Rechtsklick-Menü
+
+Rechtsklick auf eine Tabellenzeile öffnet Optionen:
+- **Details** - Zeigt alle QSO-Informationen
+- **QRZ.com öffnen** - Öffnet QRZ.com Profil im Browser
+- **Grid auf Karte** - Zeigt Locator auf Google Maps
+
+### Benutzerdefinierte Abfragen
+
+**Menü → Abfragen → Neue Abfrage**:
+1. Bedingungen hinzufügen (Feld, Operator, Wert)
+2. AND/OR Verknüpfung wählen
+3. Anzuzeigende Spalten auswählen
+4. SQL-Vorschau prüfen
+5. Abfrage speichern
+
+Gespeicherte Abfragen erscheinen direkt im Abfragen-Menü.
+
+### Daten exportieren
+
+**Menü → Export**:
+- **Als CSV** - Für Tabellenkalkulation
+- **Als TXT** - Formatierte Textdatei
+
+Exportiert werden die aktuell sichtbaren Daten mit aktiven Filtern.
+
+---
+
+## Filter verwenden
+
+### Datumsfilter
+- **Von/Bis**: Manuell eingeben (Format: JJJJ-MM-TT)
+- **Schnellauswahl**: Buttons für Jahr, Monat, Woche, Tag
+- Der aktuell ausgewählte Zeitraum wird angezeigt
+
+### Band/Mode/Land-Filter
+- **Alle**: Kein Filter aktiv
+- Wählen Sie einen spezifischen Wert aus der Dropdown-Liste
+- Filter können kombiniert werden
+
+### Filter anwenden
+- Klicken Sie auf **"Filter anwenden"** oder drücken Sie Enter
+- Die Anzahl der gefundenen QSOs wird angezeigt
+- **"Zurücksetzen"** setzt alle Filter auf den gesamten Zeitraum
+
+---
+
+## Einstellungen
+
+**Datei → Einstellungen** öffnet den Konfigurations-Dialog:
+
+### Datenbank
+- Pfad zur QLog-Datenbank (qlog.db)
+
+### Export
+- Zielverzeichnis für CSV/TXT-Exporte
+
+### Erscheinungsbild
+- **Theme**: Azure (empfohlen) oder Standard
+- **Modus**: Hell oder Dunkel
+- Neustart erforderlich nach Änderung
+
+### Spalten
+- Auswahl der Spalten für Detail-Tabellen
+- Rufzeichen ist immer sichtbar
+
+---
+
+## Tipps & Tricks
+
+### Effiziente Filter-Nutzung
+- Kombinieren Sie Datum + Band + Mode für präzise Auswertungen
+- Schnellauswahl-Buttons sparen Zeit bei häufigen Zeiträumen
+- Die QSO-Anzahl hilft bei der Kontrolle der Filter
+
+### Tabellen sortieren
+- Klick auf Spalten-Header sortiert auf-/absteigend
+- Symbol ▲ (aufsteigend) oder ▼ (absteigend) zeigt Sortierung
+- Funktioniert bei allen Tabellen
+
+### Diagramme anpassen
+- Trenner zwischen Tabelle und Diagramm verschieben
+- Propagations-Diagramm hat zwei Y-Achsen
+- Diagramme passen sich automatisch an
+
+### Große Datenbanken
+- Bei >50.000 QSOs: Filter verwenden für bessere Performance
+- Datumsbereich einschränken beschleunigt die Anzeige
+
+---
+
+## Fehlerbehebung
+
+### "Datenbank nicht gefunden"
+→ Pfad in Einstellungen prüfen und korrigieren
+
+### Leere Tabelle trotz QSOs
+→ Filter prüfen und ggf. "Zurücksetzen" klicken
+→ QSO-Anzahl kontrollieren (rechts neben den Buttons)
+
+### Theme wird nicht korrekt angezeigt
+→ Anwendung neu starten nach Theme-Änderung
+→ Prüfen ob `themes/`-Verzeichnis vorhanden ist
+
+### Export funktioniert nicht
+→ Export-Verzeichnis in Einstellungen prüfen
+→ Schreibrechte im Verzeichnis kontrollieren
+
+---
+
+## Changelog
+
+### Version 3.0 (Januar 2026)
+- Azure Theme mit Hell/Dunkel-Modus
+- Propagations-Statistik (K-Index, A-Index, SFI)
+- Sonderrufzeichen-Erkennung
+- Optimierte Menüstruktur
+- Code-Optimierungen und Vereinheitlichungen
+
+### Version 2.0
+- Modulare Architektur
+- Benutzerdefinierte SQL-Abfragen
+- Verbessertes Filter-System
+
+### Version 1.0
+- Erste Version mit Basis-Funktionalität
+
+---
 
 ## Lizenz
 
-MIT License
+MIT License - Freie Verwendung, Modifikation und Weitergabe erlaubt.
 
-## Autor
+---
 
-Entwickelt mit Claude AI (Anthropic)
+## Links
 
-## Änderungshistorie
+- **QLog**: https://github.com/foldynl/QLog
+- **QRZ.com**: https://www.qrz.com
 
-### Version 2.1 (2026-01-14)
-- Projekt-Reorganisation und Optimierung
-- Neues `core/` Verzeichnis für Datenbank, Config und Export
-- `setup/` Verzeichnis für alle Setup- und Installations-Dateien
-- Module in logische Verzeichnisse verschoben (query_manager → features, table_columns → ui)
-- Entfernung redundanter Backup-Dateien
-- Aktualisierte README mit vollständiger Modul-Dokumentation
+---
 
-### Version 2.0 (2026-01-02)
-- Komplettes Refactoring in modulare Architektur
-- Vereinheitlichte Statistik-Logik
-- Verbesserte Dokumentation und Kommentare
-- Bugfixes: Callback-Initialisierung, Exception-Handling
-
-### Version 1.0
-- Initiale Version mit monolithischem Code
-- Basis-Funktionalität: Statistiken, Filter, Export
-
-## Support
-
-Bei Problemen bitte Issue auf GitHub erstellen.
+**73 und viel Spaß beim Auswerten Ihrer QSOs!**

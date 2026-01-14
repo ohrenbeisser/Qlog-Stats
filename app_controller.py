@@ -80,25 +80,36 @@ class QlogStatsApp:
         self._setup_ui()
         self._init_database()
 
+    def _get_theme_colors(self) -> tuple:
+        """Gibt die Theme-Farben zurück basierend auf dem aktuellen Theme-Modus"""
+        theme_mode = self.config.get_theme_mode()
+        if theme_mode == 'dark':
+            return '#2b2b2b', '#e0e0e0'
+        return '#ffffff', '#000000'
+
+    def _configure_theme_styles(self, bg_color: str, fg_color: str):
+        """Konfiguriert die TTK-Styles für das Theme"""
+        from tkinter import ttk
+        style = ttk.Style()
+        style.configure('TFrame', background=bg_color)
+        style.configure('TLabelframe', background=bg_color, borderwidth=1)
+        style.configure('TLabelframe.Label', background=bg_color, foreground=fg_color)
+        style.configure('TLabel', background=bg_color, foreground=fg_color)
+        style.configure('TButton', background=bg_color)
+        style.configure('TCheckbutton', background=bg_color, foreground=fg_color)
+        style.configure('TRadiobutton', background=bg_color, foreground=fg_color)
+        style.map('TLabel',
+                 background=[('disabled', bg_color), ('active', bg_color)],
+                 foreground=[('disabled', '#999999'), ('active', fg_color)])
+        style.map('TLabelframe.Label',
+                 background=[('disabled', bg_color), ('active', bg_color)],
+                 foreground=[('disabled', '#999999'), ('active', fg_color)])
+
     def _force_update_styles(self):
         """Erzwingt ein Update der TTK-Styles (nach UI-Erstellung)"""
-        theme = self.config.get_theme()
-        if theme == 'azure':
-            from tkinter import ttk
-            theme_mode = self.config.get_theme_mode()
-
-            if theme_mode == 'dark':
-                bg_color = '#2b2b2b'
-                fg_color = '#e0e0e0'
-            else:
-                bg_color = '#ffffff'
-                fg_color = '#000000'
-
-            style = ttk.Style()
-            style.configure('TFrame', background=bg_color)
-            style.configure('TLabelframe', background=bg_color, borderwidth=1)
-            style.configure('TLabelframe.Label', background=bg_color, foreground=fg_color)
-            style.configure('TLabel', background=bg_color, foreground=fg_color)
+        if self.config.get_theme() == 'azure':
+            bg_color, fg_color = self._get_theme_colors()
+            self._configure_theme_styles(bg_color, fg_color)
 
     def _setup_ui(self):
         """Erstellt die Benutzeroberfläche durch Orchestrierung der Module"""
@@ -130,6 +141,7 @@ class QlogStatsApp:
             'show_eqsl_received': self._show_eqsl_received,
             'export_csv': self._export_csv,
             'export_txt': self._export_txt,
+            'export_adif': self._export_adif,
             'show_about': self._show_about,
             'new_query': self._new_query,
             'run_query': self._run_query,
@@ -146,7 +158,7 @@ class QlogStatsApp:
         self.plot_view = PlotView(self.main_window.get_plot_frame(), self.config)
 
         # Export-Handler erstellen (exporter wird in _init_database() gesetzt)
-        self.export_handler = ExportHandler(None)
+        self.export_handler = ExportHandler(None, parent=self.root)
 
         # Date-Filter erstellen (db wird in _init_database() gesetzt)
         self.date_filter = DateFilter(
@@ -217,6 +229,7 @@ class QlogStatsApp:
         dialog = SettingsDialog(
             self.root,
             self.config,
+            db=self.db,
             on_db_change_callback=self._on_db_path_changed,
             on_columns_change_callback=self._on_columns_changed
         )
@@ -246,115 +259,36 @@ class QlogStatsApp:
     # Callback-Methoden für Menü-Aktionen
     # Diese delegieren an die entsprechenden Module
 
-    def _show_country(self):
-        """Zeigt Länder-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('country')
-
-    def _show_band(self):
-        """Zeigt Band-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('band')
-
-    def _show_mode(self):
-        """Zeigt Mode-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('mode')
-
-    def _show_year(self):
-        """Zeigt Jahr-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('year')
-
-    def _show_search(self):
-        """Zeigt Rufzeichen-Suche an"""
-        if self.date_filter and self.statistics:
-            # Suchzeile einblenden und Fokus setzen
+    def _show_stat(self, stat_type: str, show_search: bool = False):
+        """Generische Methode zum Anzeigen von Statistiken"""
+        if show_search and self.date_filter:
             self.date_filter.show_search_row()
-            # Sofort alle QSOs anzeigen (mit aktuellen Filtern)
-            self.statistics.show_statistics('callsign_search')
-
-    def _show_special(self):
-        """Zeigt Sonderrufzeichen an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('special')
-
-    def _show_qsl_sent(self):
-        """Zeigt versendete QSL-Karten an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('qsl_sent')
-
-    def _show_qsl_received(self):
-        """Zeigt erhaltene QSL-Karten an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('qsl_received')
-
-    def _show_qsl_requested(self):
-        """Zeigt angeforderte QSL-Karten an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('qsl_requested')
-
-    def _show_qsl_queued(self):
-        """Zeigt zu versendende QSL-Karten an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('qsl_queued')
-
-    def _show_lotw_received(self):
-        """Zeigt LotW-Bestätigungen an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('lotw_received')
-
-    def _show_eqsl_received(self):
-        """Zeigt eQSL-Bestätigungen an"""
-        if self.date_filter and self.statistics:
-            self.date_filter.show_search_row()
-            self.statistics.show_statistics('eqsl_received')
-
-    def _show_weekday(self):
-        """Zeigt Wochentag-Statistik an"""
         if self.statistics:
-            self.statistics.show_statistics('weekday')
+            self.statistics.show_statistics(stat_type)
 
-    def _show_month(self):
-        """Zeigt Monats-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('month')
+    # Einfache Statistik-Callbacks (ohne Suchzeile)
+    def _show_country(self): self._show_stat('country')
+    def _show_band(self): self._show_stat('band')
+    def _show_mode(self): self._show_stat('mode')
+    def _show_year(self): self._show_stat('year')
+    def _show_weekday(self): self._show_stat('weekday')
+    def _show_month(self): self._show_stat('month')
+    def _show_day(self): self._show_stat('day')
+    def _show_hour(self): self._show_stat('hour')
+    def _show_callsign(self): self._show_stat('callsign')
+    def _show_top_days(self): self._show_stat('top_days')
+    def _show_flop_days(self): self._show_stat('flop_days')
+    def _show_propagation(self): self._show_stat('propagation')
 
-    def _show_day(self):
-        """Zeigt Tag-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('day')
-
-    def _show_hour(self):
-        """Zeigt Stunden-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('hour')
-
-    def _show_callsign(self):
-        """Zeigt Rufzeichen-Statistik an"""
-        if self.statistics:
-            self.statistics.show_statistics('callsign')
-
-    def _show_top_days(self):
-        """Zeigt Top QSO-Tage an"""
-        if self.statistics:
-            self.statistics.show_statistics('top_days')
-
-    def _show_flop_days(self):
-        """Zeigt Flop QSO-Tage an"""
-        if self.statistics:
-            self.statistics.show_statistics('flop_days')
-
-    def _show_propagation(self):
-        """Zeigt Propagation-Statistik (K-Index, A-Index, SFI) an"""
-        if self.statistics:
-            self.statistics.show_statistics('propagation')
+    # Statistik-Callbacks mit Suchzeile
+    def _show_search(self): self._show_stat('callsign_search', show_search=True)
+    def _show_special(self): self._show_stat('special', show_search=True)
+    def _show_qsl_sent(self): self._show_stat('qsl_sent', show_search=True)
+    def _show_qsl_received(self): self._show_stat('qsl_received', show_search=True)
+    def _show_qsl_requested(self): self._show_stat('qsl_requested', show_search=True)
+    def _show_qsl_queued(self): self._show_stat('qsl_queued', show_search=True)
+    def _show_lotw_received(self): self._show_stat('lotw_received', show_search=True)
+    def _show_eqsl_received(self): self._show_stat('eqsl_received', show_search=True)
 
     def _export_csv(self):
         """Exportiert aktuelle Daten als CSV"""
@@ -365,6 +299,11 @@ class QlogStatsApp:
         """Exportiert aktuelle Daten als TXT"""
         if self.export_handler:
             self.export_handler.export_txt()
+
+    def _export_adif(self):
+        """Exportiert aktuelle Daten als ADIF"""
+        if self.export_handler:
+            self.export_handler.export_adif()
 
     def _show_about(self):
         """Zeigt den Über-Dialog an"""
@@ -534,72 +473,29 @@ class QlogStatsApp:
 
     def _apply_theme(self):
         """Wendet das konfigurierte Theme an"""
+        import os
         theme = self.config.get_theme()
         theme_mode = self.config.get_theme_mode()
-
-        # Bestimme Farben basierend auf Theme-Modus
-        if theme_mode == 'dark':
-            bg_color = '#2b2b2b'
-            fg_color = '#e0e0e0'
-        else:
-            bg_color = '#ffffff'
-            fg_color = '#000000'
+        bg_color, fg_color = self._get_theme_colors()
 
         if theme == 'azure':
             try:
-                # Azure Theme lädt .tcl Dateien
-                import os
-                from tkinter import ttk
                 theme_dir = os.path.join(os.path.dirname(__file__), 'themes')
-
-                if theme_mode == 'dark':
-                    theme_file = os.path.join(theme_dir, 'azure-dark.tcl')
-                    theme_name = 'azure-dark'
-                else:
-                    theme_file = os.path.join(theme_dir, 'azure-light.tcl')
-                    theme_name = 'azure-light'
+                theme_file = os.path.join(theme_dir, f'azure-{theme_mode}.tcl')
+                theme_name = f'azure-{theme_mode}'
 
                 if os.path.exists(theme_file):
                     self.root.tk.call('source', theme_file)
                     self.root.tk.call('ttk::style', 'theme', 'use', theme_name)
-
-                    # KRITISCH: Setze Root-Hintergrund explizit
                     self.root.configure(bg=bg_color)
-
-                    # Konfiguriere TTK-Styles explizit
-                    style = ttk.Style()
-
-                    # Frame und LabelFrame Hintergründe
-                    style.configure('TFrame', background=bg_color)
-                    style.configure('TLabelframe', background=bg_color, borderwidth=1)
-                    style.configure('TLabelframe.Label', background=bg_color, foreground=fg_color)
-
-                    # WICHTIG: Auch normale Labels konfigurieren
-                    style.configure('TLabel', background=bg_color, foreground=fg_color)
-
-                    # Weitere Widgets
-                    style.configure('TButton', background=bg_color)
-                    style.configure('TCheckbutton', background=bg_color, foreground=fg_color)
-                    style.configure('TRadiobutton', background=bg_color, foreground=fg_color)
-
-                    # Setze auch die Map für verschiedene Zustände
-                    style.map('TLabel',
-                             background=[('disabled', bg_color), ('active', bg_color)],
-                             foreground=[('disabled', '#999999'), ('active', fg_color)])
-
-                    style.map('TLabelframe.Label',
-                             background=[('disabled', bg_color), ('active', bg_color)],
-                             foreground=[('disabled', '#999999'), ('active', fg_color)])
+                    self._configure_theme_styles(bg_color, fg_color)
                 else:
                     print(f"Warnung: Azure Theme-Datei nicht gefunden: {theme_file}")
-                    print("Verwende Standard-Theme.")
                     self.root.configure(bg=bg_color)
             except Exception as e:
                 print(f"Fehler beim Laden des Azure Themes: {e}")
-                print("Verwende Standard-Theme.")
                 self.root.configure(bg=bg_color)
         else:
-            # Standard-Theme
             self.root.configure(bg=bg_color)
 
     def run(self):

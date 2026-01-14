@@ -41,6 +41,7 @@ class MainWindow:
                 - 'show_eqsl_received': Callback für eQSL-Bestätigungen
                 - 'export_csv': Callback für CSV-Export
                 - 'export_txt': Callback für TXT-Export
+                - 'export_adif': Callback für ADIF-Export
                 - 'show_about': Callback für Über-Dialog
         """
         self.root = root
@@ -143,6 +144,8 @@ class MainWindow:
                               command=self.callbacks.get('export_csv'))
         export_menu.add_command(label="Als TXT exportieren",
                               command=self.callbacks.get('export_txt'))
+        export_menu.add_command(label="Als ADIF exportieren",
+                              command=self.callbacks.get('export_adif'))
 
         help_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Hilfe", menu=help_menu)

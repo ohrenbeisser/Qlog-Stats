@@ -62,6 +62,53 @@ class QlogDatabase:
         results = [dict(row) for row in cursor.fetchall()]
         return results
 
+    def _add_standard_filters(self, query: str, params: list,
+                              start_date: Optional[str] = None,
+                              end_date: Optional[str] = None,
+                              band: Optional[str] = None,
+                              mode: Optional[str] = None,
+                              country: Optional[str] = None,
+                              use_date_function: bool = False) -> tuple:
+        """
+        Fügt Standard-Filter zu einer Query hinzu (Helper-Methode)
+
+        Args:
+            query: Basis-SQL-Query
+            params: Parameter-Liste
+            start_date: Start-Datum (YYYY-MM-DD) optional
+            end_date: End-Datum (YYYY-MM-DD) optional
+            band: Band-Filter optional
+            mode: Mode-Filter optional
+            country: Land-Filter optional
+            use_date_function: True = DATE(start_time), False = start_time
+
+        Returns:
+            Tuple von (query, params)
+        """
+        date_field = "DATE(start_time)" if use_date_function else "start_time"
+
+        if start_date:
+            query += f" AND {date_field} >= ?"
+            params.append(start_date)
+        if end_date:
+            if use_date_function:
+                query += f" AND {date_field} <= ?"
+                params.append(end_date)
+            else:
+                query += f" AND {date_field} <= ?"
+                params.append(end_date + ' 23:59:59')
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        return query, params
+
     def get_total_qsos(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
                        band: Optional[str] = None, mode: Optional[str] = None,
                        country: Optional[str] = None) -> int:
@@ -80,23 +127,7 @@ class QlogDatabase:
         """
         query = "SELECT COUNT(*) as count FROM contacts WHERE 1=1"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         result = self.execute_query(query, tuple(params))
         return result[0]['count'] if result else 0
 
@@ -140,31 +171,12 @@ class QlogDatabase:
         Returns:
             Liste mit Ländern und QSO-Anzahl
         """
-        query = """
-            SELECT country, COUNT(*) as count
-            FROM contacts
-            WHERE country IS NOT NULL AND country != ''
-        """
+        query = "SELECT country, COUNT(*) as count FROM contacts WHERE country IS NOT NULL AND country != ''"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode)
         query += " GROUP BY country ORDER BY count DESC"
-
         if limit:
             query += f" LIMIT {limit}"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_band(self, start_date: Optional[str] = None,
@@ -183,28 +195,10 @@ class QlogDatabase:
         Returns:
             Liste mit Bändern und QSO-Anzahl
         """
-        query = """
-            SELECT band, COUNT(*) as count
-            FROM contacts
-            WHERE band IS NOT NULL AND band != ''
-        """
+        query = "SELECT band, COUNT(*) as count FROM contacts WHERE band IS NOT NULL AND band != ''"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, mode=mode, country=country)
         query += " GROUP BY band ORDER BY count DESC"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_mode(self, start_date: Optional[str] = None,
@@ -223,28 +217,10 @@ class QlogDatabase:
         Returns:
             Liste mit Modes und QSO-Anzahl
         """
-        query = """
-            SELECT mode, COUNT(*) as count
-            FROM contacts
-            WHERE mode IS NOT NULL AND mode != ''
-        """
+        query = "SELECT mode, COUNT(*) as count FROM contacts WHERE mode IS NOT NULL AND mode != ''"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, country=country)
         query += " GROUP BY mode ORDER BY count DESC"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_year(self, start_date: Optional[str] = None,
@@ -265,31 +241,10 @@ class QlogDatabase:
         Returns:
             Liste mit Jahren und QSO-Anzahl
         """
-        query = """
-            SELECT strftime('%Y', start_time) as year, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT strftime('%Y', start_time) as year, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY year ORDER BY year DESC"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_month(self, start_date: Optional[str] = None,
@@ -310,31 +265,10 @@ class QlogDatabase:
         Returns:
             Liste mit Monaten und QSO-Anzahl
         """
-        query = """
-            SELECT strftime('%Y-%m', start_time) as month, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT strftime('%Y-%m', start_time) as month, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY month ORDER BY month DESC"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_weekday(self, start_date: Optional[str] = None,
@@ -355,42 +289,15 @@ class QlogDatabase:
         Returns:
             Liste mit Wochentagen und QSO-Anzahl
         """
-        query = """
-            SELECT
-                CASE CAST(strftime('%w', start_time) AS INTEGER)
-                    WHEN 0 THEN 'Sonntag'
-                    WHEN 1 THEN 'Montag'
-                    WHEN 2 THEN 'Dienstag'
-                    WHEN 3 THEN 'Mittwoch'
-                    WHEN 4 THEN 'Donnerstag'
-                    WHEN 5 THEN 'Freitag'
-                    WHEN 6 THEN 'Samstag'
-                END as weekday,
-                COUNT(*) as count,
-                CAST(strftime('%w', start_time) AS INTEGER) as day_num
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = """SELECT CASE CAST(strftime('%w', start_time) AS INTEGER)
+            WHEN 0 THEN 'Sonntag' WHEN 1 THEN 'Montag' WHEN 2 THEN 'Dienstag'
+            WHEN 3 THEN 'Mittwoch' WHEN 4 THEN 'Donnerstag' WHEN 5 THEN 'Freitag'
+            WHEN 6 THEN 'Samstag' END as weekday, COUNT(*) as count,
+            CAST(strftime('%w', start_time) AS INTEGER) as day_num
+            FROM contacts WHERE start_time IS NOT NULL"""
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY day_num ORDER BY day_num"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_hour(self, start_date: Optional[str] = None,
@@ -411,31 +318,10 @@ class QlogDatabase:
         Returns:
             Liste mit Stunden und QSO-Anzahl
         """
-        query = """
-            SELECT CAST(strftime('%H', start_time) AS INTEGER) as hour, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT CAST(strftime('%H', start_time) AS INTEGER) as hour, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY hour ORDER BY hour"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_day(self, start_date: Optional[str] = None,
@@ -456,31 +342,10 @@ class QlogDatabase:
         Returns:
             Liste mit Tagen und QSO-Anzahl
         """
-        query = """
-            SELECT CAST(strftime('%d', start_time) AS INTEGER) as day, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT CAST(strftime('%d', start_time) AS INTEGER) as day, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY day ORDER BY day"
-
         return self.execute_query(query, tuple(params))
 
     def get_top_qso_days(self, start_date: Optional[str] = None,
@@ -503,34 +368,12 @@ class QlogDatabase:
         Returns:
             Liste mit Tagen (Datum) und QSO-Anzahl
         """
-        query = """
-            SELECT DATE(start_time) as date, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT DATE(start_time) as date, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY date ORDER BY count DESC"
-
         if limit:
             query += f" LIMIT {limit}"
-
         return self.execute_query(query, tuple(params))
 
     def get_flop_qso_days(self, start_date: Optional[str] = None,
@@ -553,34 +396,12 @@ class QlogDatabase:
         Returns:
             Liste mit Tagen (Datum) und QSO-Anzahl
         """
-        query = """
-            SELECT DATE(start_time) as date, COUNT(*) as count
-            FROM contacts
-            WHERE start_time IS NOT NULL
-        """
+        query = "SELECT DATE(start_time) as date, COUNT(*) as count FROM contacts WHERE start_time IS NOT NULL"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY date ORDER BY count ASC"
-
         if limit:
             query += f" LIMIT {limit}"
-
         return self.execute_query(query, tuple(params))
 
     def get_qsos_by_callsign(self, start_date: Optional[str] = None,
@@ -603,34 +424,12 @@ class QlogDatabase:
         Returns:
             Liste mit Rufzeichen und QSO-Anzahl
         """
-        query = """
-            SELECT callsign, COUNT(*) as count
-            FROM contacts
-            WHERE callsign IS NOT NULL AND callsign != ''
-        """
+        query = "SELECT callsign, COUNT(*) as count FROM contacts WHERE callsign IS NOT NULL AND callsign != ''"
         params = []
-
-        if start_date:
-            query += " AND start_time >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND start_time <= ?"
-            params.append(end_date + ' 23:59:59')
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country)
         query += " GROUP BY callsign ORDER BY count DESC"
-
         if limit:
             query += f" LIMIT {limit}"
-
         return self.execute_query(query, tuple(params))
 
     def get_special_callsigns(self, start_date: Optional[str] = None,
@@ -853,136 +652,31 @@ class QlogDatabase:
         self.connect()
         from ui.table_columns import build_select_clause
 
-        # Bestimme die SELECT-Spalten
-        if columns:
-            select_clause = build_select_clause(columns)
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
+        select_clause = build_select_clause(columns) if columns else \
+            "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
 
-        # Basis-Query
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE 1=1
-        """
-
+        query = f"SELECT {select_clause} FROM contacts WHERE 1=1"
         params = []
 
-        # Rufzeichen-Suche (beginnend oder Teilstring)
-        # Wenn search_term leer ist, alle Rufzeichen anzeigen
-        if search_term:  # Nur filtern wenn Suchbegriff vorhanden
-            if search_mode == 'beginning':
-                # Suche vom Beginn des Rufzeichens
-                query += " AND UPPER(callsign) LIKE UPPER(?)"
-                params.append(f"{search_term}%")
-            else:  # partial
-                # Suche im gesamten Rufzeichen (Teilstring)
-                query += " AND UPPER(callsign) LIKE UPPER(?)"
-                params.append(f"%{search_term}%")
+        if search_term:
+            pattern = f"{search_term}%" if search_mode == 'beginning' else f"%{search_term}%"
+            query += " AND UPPER(callsign) LIKE UPPER(?)"
+            params.append(pattern)
 
-        # Datumsfilter
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        # Band-Filter
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        # Mode-Filter
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        # Land-Filter
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        # Sortierung nach Datum und Zeit (neueste zuerst)
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country, use_date_function=True)
         query += " ORDER BY start_time DESC"
-
         return self.execute_query(query, tuple(params))
 
-    def get_qsl_sent(self, start_date: Optional[str] = None,
-                    end_date: Optional[str] = None,
-                    band: Optional[str] = None,
-                    mode: Optional[str] = None,
-                    country: Optional[str] = None,
-                    columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def _get_qsl_data(self, where_clause: str, qsl_date_field: Optional[str] = None,
+                      start_date: Optional[str] = None, end_date: Optional[str] = None,
+                      band: Optional[str] = None, mode: Optional[str] = None,
+                      country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
-        Gibt alle QSOs mit versendeten QSL-Karten zurück
+        Generische Helper-Methode für QSL-Abfragen
 
         Args:
-            start_date: Startdatum (YYYY-MM-DD) für Filter
-            end_date: Enddatum (YYYY-MM-DD) für Filter
-            band: Band-Filter
-            mode: Mode-Filter
-            country: Land-Filter
-
-        Returns:
-            Liste von QSO-Dictionaries mit Details
-        """
-        self.connect()
-        from ui.table_columns import build_select_clause
-
-        # Bestimme die SELECT-Spalten (mit qsl_sdate für qsl_date)
-        if columns:
-            select_clause = build_select_clause(columns, qsl_date_field='qsl_sdate')
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, qsl_sdate as qsl_date"
-
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE qsl_sdate IS NOT NULL
-        """
-
-        params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        query += " ORDER BY start_time DESC"
-
-        return self.execute_query(query, tuple(params))
-
-    def get_qsl_received(self, start_date: Optional[str] = None,
-                        end_date: Optional[str] = None,
-                        band: Optional[str] = None,
-                        mode: Optional[str] = None,
-                        country: Optional[str] = None,
-                        columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Gibt alle QSOs mit erhaltenen QSL-Karten zurück
-
-        Args:
+            where_clause: WHERE-Bedingung (z.B. "qsl_sdate IS NOT NULL")
+            qsl_date_field: Optionales QSL-Datumsfeld für build_select_clause
             start_date: Startdatum (YYYY-MM-DD) für Filter
             end_date: Enddatum (YYYY-MM-DD) für Filter
             band: Band-Filter
@@ -991,302 +685,58 @@ class QlogDatabase:
             columns: Optionale Spaltenliste
 
         Returns:
-            Liste von QSO-Dictionaries mit Details
+            Liste von QSO-Dictionaries
         """
         self.connect()
         from ui.table_columns import build_select_clause
 
-        # Bestimme die SELECT-Spalten (mit qsl_rdate für qsl_date)
         if columns:
-            select_clause = build_select_clause(columns, qsl_date_field='qsl_rdate')
+            select_clause = build_select_clause(columns, qsl_date_field=qsl_date_field)
         else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, qsl_rdate as qsl_date"
+            base_cols = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
+            select_clause = f"{base_cols}, {qsl_date_field} as qsl_date" if qsl_date_field else base_cols
 
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE qsl_rdate IS NOT NULL
-        """
-
+        query = f"SELECT {select_clause} FROM contacts WHERE {where_clause}"
         params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country, use_date_function=True)
         query += " ORDER BY start_time DESC"
-
         return self.execute_query(query, tuple(params))
 
-    def get_qsl_requested(self, start_date: Optional[str] = None,
-                         end_date: Optional[str] = None,
-                         band: Optional[str] = None,
-                         mode: Optional[str] = None,
-                         country: Optional[str] = None,
-                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Gibt alle QSOs mit angeforderten QSL-Karten zurück
+    def get_qsl_sent(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                    band: Optional[str] = None, mode: Optional[str] = None,
+                    country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit versendeten QSL-Karten zurück"""
+        return self._get_qsl_data("qsl_sdate IS NOT NULL", "qsl_sdate", start_date, end_date, band, mode, country, columns)
 
-        Args:
-            start_date: Startdatum (YYYY-MM-DD) für Filter
-            end_date: Enddatum (YYYY-MM-DD) für Filter
-            band: Band-Filter
-            mode: Mode-Filter
-            country: Land-Filter
-            columns: Optionale Spaltenliste
+    def get_qsl_received(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                        band: Optional[str] = None, mode: Optional[str] = None,
+                        country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit erhaltenen QSL-Karten zurück"""
+        return self._get_qsl_data("qsl_rdate IS NOT NULL", "qsl_rdate", start_date, end_date, band, mode, country, columns)
 
-        Returns:
-            Liste von QSO-Dictionaries mit Details
-        """
-        self.connect()
-        from ui.table_columns import build_select_clause
+    def get_qsl_requested(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                         band: Optional[str] = None, mode: Optional[str] = None,
+                         country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit angeforderten QSL-Karten zurück"""
+        return self._get_qsl_data("qsl_rcvd = 'R'", None, start_date, end_date, band, mode, country, columns)
 
-        # Bestimme die SELECT-Spalten
-        if columns:
-            select_clause = build_select_clause(columns)
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
+    def get_qsl_queued(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                      band: Optional[str] = None, mode: Optional[str] = None,
+                      country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit zu versendenden QSL-Karten zurück"""
+        return self._get_qsl_data("qsl_sent = 'Q'", None, start_date, end_date, band, mode, country, columns)
 
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE qsl_rcvd = 'R'
-        """
+    def get_lotw_received(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                         band: Optional[str] = None, mode: Optional[str] = None,
+                         country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit LotW-Bestätigungen zurück"""
+        return self._get_qsl_data("lotw_qsl_rcvd = 'Y'", "lotw_qslrdate", start_date, end_date, band, mode, country, columns)
 
-        params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        query += " ORDER BY start_time DESC"
-
-        return self.execute_query(query, tuple(params))
-
-    def get_qsl_queued(self, start_date: Optional[str] = None,
-                      end_date: Optional[str] = None,
-                      band: Optional[str] = None,
-                      mode: Optional[str] = None,
-                      country: Optional[str] = None,
-                      columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Gibt alle QSOs mit zu versendenden QSL-Karten zurück
-
-        Args:
-            start_date: Startdatum (YYYY-MM-DD) für Filter
-            end_date: Enddatum (YYYY-MM-DD) für Filter
-            band: Band-Filter
-            mode: Mode-Filter
-            country: Land-Filter
-            columns: Optionale Spaltenliste
-
-        Returns:
-            Liste von QSO-Dictionaries mit Details
-        """
-        self.connect()
-        from ui.table_columns import build_select_clause
-
-        # Bestimme die SELECT-Spalten
-        if columns:
-            select_clause = build_select_clause(columns)
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country"
-
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE qsl_sent = 'Q'
-        """
-
-        params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        query += " ORDER BY start_time DESC"
-
-        return self.execute_query(query, tuple(params))
-
-    def get_lotw_received(self, start_date: Optional[str] = None,
-                         end_date: Optional[str] = None,
-                         band: Optional[str] = None,
-                         mode: Optional[str] = None,
-                         country: Optional[str] = None,
-                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Gibt alle QSOs mit LotW-Bestätigungen zurück
-
-        Args:
-            start_date: Startdatum (YYYY-MM-DD) für Filter
-            end_date: Enddatum (YYYY-MM-DD) für Filter
-            band: Band-Filter
-            mode: Mode-Filter
-            country: Land-Filter
-            columns: Optionale Spaltenliste
-
-        Returns:
-            Liste von QSO-Dictionaries mit Details
-        """
-        self.connect()
-        from ui.table_columns import build_select_clause
-
-        # Bestimme die SELECT-Spalten (mit lotw_qslrdate für qsl_date)
-        if columns:
-            select_clause = build_select_clause(columns, qsl_date_field='lotw_qslrdate')
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, lotw_qslrdate as qsl_date"
-
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE lotw_qsl_rcvd = 'Y'
-        """
-
-        params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        query += " ORDER BY start_time DESC"
-
-        return self.execute_query(query, tuple(params))
-
-    def get_eqsl_received(self, start_date: Optional[str] = None,
-                         end_date: Optional[str] = None,
-                         band: Optional[str] = None,
-                         mode: Optional[str] = None,
-                         country: Optional[str] = None,
-                         columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Gibt alle QSOs mit eQSL-Bestätigungen zurück
-
-        Args:
-            start_date: Startdatum (YYYY-MM-DD) für Filter
-            end_date: Enddatum (YYYY-MM-DD) für Filter
-            band: Band-Filter
-            mode: Mode-Filter
-            country: Land-Filter
-            columns: Optionale Spaltenliste
-
-        Returns:
-            Liste von QSO-Dictionaries mit Details
-        """
-        self.connect()
-        from ui.table_columns import build_select_clause
-
-        # Bestimme die SELECT-Spalten (mit eqsl_qslrdate für qsl_date)
-        if columns:
-            select_clause = build_select_clause(columns, qsl_date_field='eqsl_qslrdate')
-        else:
-            # Fallback auf Standard-Spalten
-            select_clause = "callsign, DATE(start_time) as date, TIME(start_time) as time, band, mode, country, eqsl_qslrdate as qsl_date"
-
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM contacts
-            WHERE eqsl_qsl_rcvd = 'Y'
-        """
-
-        params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
-        query += " ORDER BY start_time DESC"
-
-        return self.execute_query(query, tuple(params))
+    def get_eqsl_received(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
+                         band: Optional[str] = None, mode: Optional[str] = None,
+                         country: Optional[str] = None, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Gibt alle QSOs mit eQSL-Bestätigungen zurück"""
+        return self._get_qsl_data("eqsl_qsl_rcvd = 'Y'", "eqsl_qslrdate", start_date, end_date, band, mode, country, columns)
 
     def get_database_info(self) -> Dict[str, Any]:
         """
@@ -1303,6 +753,29 @@ class QlogDatabase:
         }
         return info
 
+    def get_table_columns(self) -> List[Dict[str, Any]]:
+        """
+        Gibt alle Spalten der contacts-Tabelle zurück
+
+        Returns:
+            Liste von Dictionaries mit Spalteninformationen
+            Format: [{'cid': 0, 'name': 'id', 'type': 'INTEGER', ...}, ...]
+        """
+        self.connect()
+        cursor = self.connection.cursor()
+        cursor.execute("PRAGMA table_info(contacts)")
+        columns = []
+        for row in cursor.fetchall():
+            columns.append({
+                'cid': row[0],
+                'name': row[1],
+                'type': row[2],
+                'notnull': row[3],
+                'default': row[4],
+                'pk': row[5]
+            })
+        return columns
+
     def get_propagation_data(self, start_date: Optional[str] = None,
                             end_date: Optional[str] = None,
                             band: Optional[str] = None,
@@ -1310,76 +783,30 @@ class QlogDatabase:
                             country: Optional[str] = None,
                             **kwargs) -> List[Dict[str, Any]]:
         """
-        Holt Propagation-Daten (K-Index, A-Index, SFI) aus der Datenbank
-
-        Doppelte aufeinanderfolgende Werte werden gefiltert, um das Diagramm
-        übersichtlich zu halten.
-
-        Args:
-            start_date: Start-Datum im Format YYYY-MM-DD (optional)
-            end_date: End-Datum im Format YYYY-MM-DD (optional)
-            band: Filter nach Band (optional)
-            mode: Filter nach Mode (optional)
-            country: Filter nach Land (optional)
-            **kwargs: Zusätzliche Parameter werden ignoriert
+        Holt Propagation-Daten (K-Index, A-Index, SFI) aus der Datenbank.
+        Doppelte aufeinanderfolgende Werte werden gefiltert.
 
         Returns:
             Liste von Dictionaries mit Propagation-Daten
-            Format: [{'datetime': 'YYYY-MM-DD HH:MM:SS', 'k_index': X, 'a_index': Y, 'sfi': Z}, ...]
         """
         self.connect()
-
-        query = """
-            SELECT
-                start_time as datetime,
-                k_index,
-                a_index,
-                sfi
-            FROM contacts
-            WHERE (k_index IS NOT NULL OR a_index IS NOT NULL OR sfi IS NOT NULL)
-        """
-
+        query = "SELECT start_time as datetime, k_index, a_index, sfi FROM contacts WHERE (k_index IS NOT NULL OR a_index IS NOT NULL OR sfi IS NOT NULL)"
         params = []
-
-        if start_date:
-            query += " AND DATE(start_time) >= ?"
-            params.append(start_date)
-
-        if end_date:
-            query += " AND DATE(start_time) <= ?"
-            params.append(end_date)
-
-        if band:
-            query += " AND band = ?"
-            params.append(band)
-
-        if mode:
-            query += " AND mode = ?"
-            params.append(mode)
-
-        if country:
-            query += " AND country = ?"
-            params.append(country)
-
+        query, params = self._add_standard_filters(query, params, start_date, end_date, band, mode, country, use_date_function=True)
         query += " ORDER BY start_time ASC"
 
         results = self.execute_query(query, tuple(params))
-
-        # Filtere doppelte aufeinanderfolgende Werte
         if not results:
             return []
 
+        # Filtere doppelte aufeinanderfolgende Werte
         filtered_results = []
         last_values = None
-
         for row in results:
             current_values = (row.get('k_index'), row.get('a_index'), row.get('sfi'))
-
-            # Füge hinzu, wenn Werte sich geändert haben oder es der erste Eintrag ist
             if current_values != last_values:
                 filtered_results.append(dict(row))
                 last_values = current_values
-
         return filtered_results
 
     def __enter__(self):
