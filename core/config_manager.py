@@ -44,11 +44,12 @@ class ConfigManager:
         self.config['GUI'] = {
             'window_width': '1200',
             'window_height': '800',
-            'theme': 'default'
+            'theme': 'azure',
+            'theme_mode': 'light'
         }
 
         # Standard-Spalten für Detail-Tabellen
-        from table_columns import DEFAULT_COLUMNS
+        from ui.table_columns import DEFAULT_COLUMNS
         self.config['TableColumns'] = {
             'detail_columns': json.dumps(DEFAULT_COLUMNS)
         }
@@ -107,7 +108,7 @@ class ConfigManager:
         Returns:
             list: Liste von Spalten-IDs
         """
-        from table_columns import DEFAULT_COLUMNS
+        from ui.table_columns import DEFAULT_COLUMNS
 
         # Hole JSON-String aus Config
         columns_json = self.config.get('TableColumns', 'detail_columns',
@@ -141,4 +142,36 @@ class ConfigManager:
             self.config['TableColumns'] = {}
 
         self.config['TableColumns']['detail_columns'] = json.dumps(columns_copy)
+        self.save_config()
+
+    def get_theme(self):
+        """
+        Gibt das ausgewählte Theme zurück
+
+        Returns:
+            str: Theme-Name ('azure' oder 'default')
+        """
+        return self.config.get('GUI', 'theme', fallback='azure')
+
+    def get_theme_mode(self):
+        """
+        Gibt den Theme-Modus zurück
+
+        Returns:
+            str: Theme-Modus ('light' oder 'dark')
+        """
+        return self.config.get('GUI', 'theme_mode', fallback='light')
+
+    def set_theme(self, theme, theme_mode='light'):
+        """
+        Setzt das Theme und den Theme-Modus
+
+        Args:
+            theme: Theme-Name ('azure' oder 'default')
+            theme_mode: Theme-Modus ('light' oder 'dark')
+        """
+        if 'GUI' not in self.config:
+            self.config['GUI'] = {}
+        self.config['GUI']['theme'] = theme
+        self.config['GUI']['theme_mode'] = theme_mode
         self.save_config()

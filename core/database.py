@@ -661,7 +661,7 @@ class QlogDatabase:
             Liste mit QSOs von Sonderrufzeichen
         """
         import re
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten
         if columns:
@@ -851,7 +851,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details (callsign, date, time, band, mode, country)
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten
         if columns:
@@ -931,7 +931,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten (mit qsl_sdate für qsl_date)
         if columns:
@@ -994,7 +994,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten (mit qsl_rdate für qsl_date)
         if columns:
@@ -1057,7 +1057,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten
         if columns:
@@ -1120,7 +1120,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten
         if columns:
@@ -1183,7 +1183,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten (mit lotw_qslrdate für qsl_date)
         if columns:
@@ -1246,7 +1246,7 @@ class QlogDatabase:
             Liste von QSO-Dictionaries mit Details
         """
         self.connect()
-        from table_columns import build_select_clause
+        from ui.table_columns import build_select_clause
 
         # Bestimme die SELECT-Spalten (mit eqsl_qslrdate für qsl_date)
         if columns:
@@ -1302,6 +1302,85 @@ class QlogDatabase:
             'total_qsos': self.get_total_qsos()
         }
         return info
+
+    def get_propagation_data(self, start_date: Optional[str] = None,
+                            end_date: Optional[str] = None,
+                            band: Optional[str] = None,
+                            mode: Optional[str] = None,
+                            country: Optional[str] = None,
+                            **kwargs) -> List[Dict[str, Any]]:
+        """
+        Holt Propagation-Daten (K-Index, A-Index, SFI) aus der Datenbank
+
+        Doppelte aufeinanderfolgende Werte werden gefiltert, um das Diagramm
+        übersichtlich zu halten.
+
+        Args:
+            start_date: Start-Datum im Format YYYY-MM-DD (optional)
+            end_date: End-Datum im Format YYYY-MM-DD (optional)
+            band: Filter nach Band (optional)
+            mode: Filter nach Mode (optional)
+            country: Filter nach Land (optional)
+            **kwargs: Zusätzliche Parameter werden ignoriert
+
+        Returns:
+            Liste von Dictionaries mit Propagation-Daten
+            Format: [{'datetime': 'YYYY-MM-DD HH:MM:SS', 'k_index': X, 'a_index': Y, 'sfi': Z}, ...]
+        """
+        self.connect()
+
+        query = """
+            SELECT
+                start_time as datetime,
+                k_index,
+                a_index,
+                sfi
+            FROM contacts
+            WHERE (k_index IS NOT NULL OR a_index IS NOT NULL OR sfi IS NOT NULL)
+        """
+
+        params = []
+
+        if start_date:
+            query += " AND DATE(start_time) >= ?"
+            params.append(start_date)
+
+        if end_date:
+            query += " AND DATE(start_time) <= ?"
+            params.append(end_date)
+
+        if band:
+            query += " AND band = ?"
+            params.append(band)
+
+        if mode:
+            query += " AND mode = ?"
+            params.append(mode)
+
+        if country:
+            query += " AND country = ?"
+            params.append(country)
+
+        query += " ORDER BY start_time ASC"
+
+        results = self.execute_query(query, tuple(params))
+
+        # Filtere doppelte aufeinanderfolgende Werte
+        if not results:
+            return []
+
+        filtered_results = []
+        last_values = None
+
+        for row in results:
+            current_values = (row.get('k_index'), row.get('a_index'), row.get('sfi'))
+
+            # Füge hinzu, wenn Werte sich geändert haben oder es der erste Eintrag ist
+            if current_values != last_values:
+                filtered_results.append(dict(row))
+                last_values = current_values
+
+        return filtered_results
 
     def __enter__(self):
         """Context Manager: Verbindung öffnen"""

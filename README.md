@@ -30,44 +30,66 @@ Qlog-Stats ist ein Python-basiertes Desktop-Tool zur Analyse und Visualisierung 
 ```
 Qlog-Stats/
 ├── main.py                      # Einstiegspunkt (19 Zeilen)
-├── app_controller.py            # Haupt-Controller (186 Zeilen)
-├── config_manager.py            # INI-Konfiguration
-├── database.py                  # SQLite DB-Zugriff (nur lesen)
-├── stats_exporter.py            # Export-Funktionen
+├── app_controller.py            # Haupt-Controller (506 Zeilen)
+├── config.ini                   # Konfigurationsdatei
+│
+├── core/                        # Core-Layer (Daten & Konfiguration)
+│   ├── __init__.py
+│   ├── database.py              # SQLite DB-Zugriff (nur lesen)
+│   ├── config_manager.py        # INI-Konfiguration
+│   └── stats_exporter.py        # Export-Funktionen
 │
 ├── ui/                          # UI-Layer
 │   ├── __init__.py
 │   ├── main_window.py           # Fenster-Layout & Menü
 │   ├── table_view.py            # Sortierbare Tabelle
-│   └── plot_view.py             # Matplotlib-Integration
+│   ├── plot_view.py             # Matplotlib-Integration
+│   ├── settings_dialog.py       # Einstellungs-Dialog
+│   └── table_columns.py         # Spalten-Definitionen
 │
-└── features/                    # Feature-Layer
-    ├── __init__.py
-    ├── statistics.py            # Vereinheitlichte Statistik-Logik
-    ├── date_filter.py           # Datumsfilter
-    ├── export_handler.py        # Export-Koordination
-    └── qrz_integration.py       # QRZ.com Links
+├── features/                    # Feature-Layer
+│   ├── __init__.py
+│   ├── statistics.py            # Vereinheitlichte Statistik-Logik
+│   ├── date_filter.py           # Datumsfilter
+│   ├── export_handler.py        # Export-Koordination
+│   ├── context_menu.py          # Kontextmenü & Detail-Dialog
+│   ├── query_builder.py         # SQL-Query-Builder
+│   ├── query_manager.py         # Query-Verwaltung
+│   ├── query_manager_dialog.py  # Query-Manager UI
+│   └── qrz_integration.py       # QRZ.com Links
+│
+└── setup/                       # Setup & Installation
+    ├── setup.sh                 # Linux/macOS Setup-Script
+    ├── setup.bat                # Windows Setup-Script
+    ├── run.sh                   # Start-Script
+    └── INSTALL.md               # Detaillierte Installationsanleitung
 ```
 
 ## Architektur
 
 Das Projekt folgt einer klaren Schichten-Architektur:
 
-### UI-Layer
-- **MainWindow**: Menü, Layout, PanedWindow
+### Core-Layer (Daten & Konfiguration)
+- **QlogDatabase**: Read-only SQLite-Zugriff auf Qlog-Datenbank
+- **ConfigManager**: INI-Datei-Verwaltung und Einstellungen
+- **StatsExporter**: Export-Funktionalität für CSV/TXT
+
+### UI-Layer (Benutzeroberfläche)
+- **MainWindow**: Hauptfenster mit Menü, Layout und PanedWindow
 - **TableView**: Treeview mit intelligenter Sortierung
 - **PlotView**: Matplotlib-Canvas-Verwaltung
+- **SettingsDialog**: Einstellungs-Dialog für Konfiguration
+- **table_columns**: Spalten-Definitionen für Detail-Tabellen
 
-### Feature-Layer
+### Feature-Layer (Business-Logik)
 - **Statistics**: Zentrale Statistik-Logik (Strategy Pattern)
 - **DateFilter**: Filter-UI und Validierung
 - **ExportHandler**: CSV/TXT Export-Koordination
-- **QRZIntegration**: Browser-Integration
-
-### Data-Layer
-- **QlogDatabase**: Read-only SQLite-Zugriff
-- **StatsExporter**: Export-Funktionalität
-- **ConfigManager**: INI-Datei-Verwaltung
+- **ContextMenu**: Kontextmenü und Detail-Dialog
+- **QueryBuilder**: SQL-Query-Builder-Dialog
+- **QueryManager**: Verwaltung benutzerdefinierter Queries
+- **QueryManagerDialog**: UI für Query-Verwaltung
+- **QRZIntegration**: Browser-Integration für QRZ.com
 
 ## Installation
 
@@ -115,7 +137,7 @@ height = 700
 
 ```bash
 # Mit run.sh (empfohlen)
-./run.sh
+./setup/run.sh
 
 # Oder direkt
 source .venv/bin/activate
@@ -162,7 +184,7 @@ Deutsche Sonderrufzeichen werden erkannt durch:
 
 ```bash
 # Syntax-Check
-python3 -m py_compile main.py app_controller.py ui/*.py features/*.py
+python3 -m py_compile main.py app_controller.py core/*.py ui/*.py features/*.py
 
 # Import-Test
 python3 -c "from app_controller import QlogStatsApp; print('OK')"
@@ -177,6 +199,14 @@ MIT License
 Entwickelt mit Claude AI (Anthropic)
 
 ## Änderungshistorie
+
+### Version 2.1 (2026-01-14)
+- Projekt-Reorganisation und Optimierung
+- Neues `core/` Verzeichnis für Datenbank, Config und Export
+- `setup/` Verzeichnis für alle Setup- und Installations-Dateien
+- Module in logische Verzeichnisse verschoben (query_manager → features, table_columns → ui)
+- Entfernung redundanter Backup-Dateien
+- Aktualisierte README mit vollständiger Modul-Dokumentation
 
 ### Version 2.0 (2026-01-02)
 - Komplettes Refactoring in modulare Architektur

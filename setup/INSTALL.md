@@ -11,8 +11,9 @@ Diese Anleitung beschreibt die Installation von Qlog-Stats auf einem neuen PC.
 git clone <repository-url> Qlog-Stats
 cd Qlog-Stats
 
-# 2. Setup-Script ausführen
-./setup.sh
+# 2. Setup-Script ausführbar machen und ausführen
+chmod +x setup/setup.sh
+./setup/setup.sh
 ```
 
 Das Script führt automatisch folgende Schritte aus:
@@ -30,7 +31,7 @@ git clone <repository-url> Qlog-Stats
 cd Qlog-Stats
 
 REM 2. Setup-Script ausführen
-setup.bat
+setup\setup.bat
 ```
 
 Das Script führt automatisch folgende Schritte aus:
@@ -107,7 +108,7 @@ brew install python3 tcl-tk git
 
 4. **Start-Script ausführbar machen** (nur Linux/macOS)
    ```bash
-   chmod +x run.sh
+   chmod +x setup/run.sh
    ```
 
 ## Installation ohne Git
@@ -126,7 +127,7 @@ Oder manuelle Installation ab Schritt 2 durchführen.
 
 ```bash
 # Mit run.sh (empfohlen)
-./run.sh
+./setup/run.sh
 
 # Oder manuell
 source .venv/bin/activate

@@ -2,6 +2,9 @@
 REM Qlog-Stats Installation Script für Windows
 REM Dieses Script richtet Qlog-Stats auf einem neuen Windows-PC ein
 
+REM Wechsle ins Projekt-Verzeichnis (ein Verzeichnis nach oben)
+cd /d "%~dp0\.."
+
 echo ==========================================
 echo   Qlog-Stats Installation (Windows)
 echo ==========================================

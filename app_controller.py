@@ -35,14 +35,14 @@ Lizenz: MIT
 import os
 from tkinter import messagebox, filedialog
 
-from config_manager import ConfigManager
-from database import QlogDatabase
-from stats_exporter import StatsExporter
+from core.config_manager import ConfigManager
+from core.database import QlogDatabase
+from core.stats_exporter import StatsExporter
 
 from ui import MainWindow, TableView, PlotView, SettingsDialog
 from features import Statistics, DateFilter, ExportHandler, QRZIntegration
 from features.query_builder import QueryBuilderDialog
-from query_manager import QueryManager
+from features.query_manager import QueryManager
 
 
 class QlogStatsApp:
@@ -59,6 +59,7 @@ class QlogStatsApp:
         self.root.title("Qlog-Stats - QSO Statistik Auswertung")
 
         self.config = ConfigManager()
+        self._apply_theme()  # Theme anwenden
         self.db = None
         self.exporter = None
         self.query_manager = QueryManager()  # Query Manager für benutzerdefinierte Abfragen
@@ -98,6 +99,7 @@ class QlogStatsApp:
             'show_callsign': self._show_callsign,
             'show_top_days': self._show_top_days,
             'show_flop_days': self._show_flop_days,
+            'show_propagation': self._show_propagation,
             'show_search': self._show_search,
             'show_special': self._show_special,
             'show_qsl_sent': self._show_qsl_sent,
@@ -326,6 +328,11 @@ class QlogStatsApp:
         if self.statistics:
             self.statistics.show_statistics('flop_days')
 
+    def _show_propagation(self):
+        """Zeigt Propagation-Statistik (K-Index, A-Index, SFI) an"""
+        if self.statistics:
+            self.statistics.show_statistics('propagation')
+
     def _export_csv(self):
         """Exportiert aktuelle Daten als CSV"""
         if self.export_handler:
@@ -500,6 +507,34 @@ class QlogStatsApp:
         """Aktualisiert das Abfragen-Menü mit gespeicherten Abfragen"""
         queries = self.query_manager.get_query_names()
         self.main_window.update_queries_menu(queries)
+
+    def _apply_theme(self):
+        """Wendet das konfigurierte Theme an"""
+        theme = self.config.get_theme()
+        theme_mode = self.config.get_theme_mode()
+
+        if theme == 'azure':
+            try:
+                # Azure Theme lädt .tcl Dateien
+                import os
+                theme_dir = os.path.join(os.path.dirname(__file__), 'themes')
+
+                if theme_mode == 'dark':
+                    theme_file = os.path.join(theme_dir, 'azure-dark.tcl')
+                    theme_name = 'azure-dark'
+                else:
+                    theme_file = os.path.join(theme_dir, 'azure-light.tcl')
+                    theme_name = 'azure-light'
+
+                if os.path.exists(theme_file):
+                    self.root.tk.call('source', theme_file)
+                    self.root.tk.call('ttk::style', 'theme', 'use', theme_name)
+                else:
+                    print(f"Warnung: Azure Theme-Datei nicht gefunden: {theme_file}")
+                    print("Verwende Standard-Theme.")
+            except Exception as e:
+                print(f"Fehler beim Laden des Azure Themes: {e}")
+                print("Verwende Standard-Theme.")
 
     def run(self):
         """Startet die Anwendung"""

@@ -28,6 +28,8 @@ class SettingsDialog:
         self.dialog = None
         self.db_path_var = None
         self.export_dir_var = None
+        self.theme_var = None
+        self.theme_mode_var = None
         self.column_vars = {}  # Dictionary für Spalten-Checkboxen
         self.result = False
 
@@ -116,25 +118,55 @@ class SettingsDialog:
                                        command=self._browse_export_dir)
         export_browse_btn.grid(row=0, column=1)
 
+        # Theme-Auswahl
+        theme_label = ttk.Label(main_frame, text="Erscheinungsbild:",
+                               font=('TkDefaultFont', 10, 'bold'))
+        theme_label.grid(row=4, column=0, sticky='w', pady=(0, 5))
+
+        theme_frame = ttk.Frame(main_frame)
+        theme_frame.grid(row=5, column=0, sticky='w', pady=(0, 20))
+
+        # Theme-Dropdown
+        ttk.Label(theme_frame, text="Theme:").grid(row=0, column=0, sticky='w', padx=(0, 10))
+        self.theme_var = tk.StringVar()
+        theme_combo = ttk.Combobox(theme_frame, textvariable=self.theme_var,
+                                   values=['Azure', 'Standard'],
+                                   state='readonly', width=20)
+        theme_combo.grid(row=0, column=1, padx=(0, 20))
+
+        # Theme-Modus (Hell/Dunkel)
+        ttk.Label(theme_frame, text="Modus:").grid(row=0, column=2, sticky='w', padx=(0, 10))
+        self.theme_mode_var = tk.StringVar()
+        mode_combo = ttk.Combobox(theme_frame, textvariable=self.theme_mode_var,
+                                 values=['Hell', 'Dunkel'],
+                                 state='readonly', width=15)
+        mode_combo.grid(row=0, column=3)
+
+        # Hinweis
+        theme_info = ttk.Label(main_frame,
+                              text="Hinweis: Änderung des Themes erfordert einen Neustart der Anwendung.",
+                              font=('TkDefaultFont', 8), foreground='gray')
+        theme_info.grid(row=6, column=0, sticky='w', pady=(0, 10))
+
         # Trennlinie
-        ttk.Separator(main_frame, orient='horizontal').grid(row=4, column=0, sticky='ew', pady=20)
+        ttk.Separator(main_frame, orient='horizontal').grid(row=7, column=0, sticky='ew', pady=20)
 
         # Spaltenauswahl für Detail-Tabellen
         columns_label = ttk.Label(main_frame, text="Spalten für Detail-Tabellen:",
                                  font=('TkDefaultFont', 10, 'bold'))
-        columns_label.grid(row=5, column=0, sticky='w', pady=(0, 5))
+        columns_label.grid(row=8, column=0, sticky='w', pady=(0, 5))
 
         columns_info = ttk.Label(main_frame,
                                 text="Wähle die Spalten aus, die in Tabellen mit QSO-Details angezeigt werden sollen:",
                                 font=('TkDefaultFont', 8))
-        columns_info.grid(row=6, column=0, sticky='w', pady=(0, 10))
+        columns_info.grid(row=9, column=0, sticky='w', pady=(0, 10))
 
         # Frame für Checkboxen (mit mehreren Spalten)
         columns_frame = ttk.Frame(main_frame)
-        columns_frame.grid(row=7, column=0, sticky='ew', pady=(0, 20))
+        columns_frame.grid(row=10, column=0, sticky='ew', pady=(0, 20))
 
         # Importiere verfügbare Spalten
-        from table_columns import AVAILABLE_COLUMNS, get_column_label
+        from ui.table_columns import AVAILABLE_COLUMNS, get_column_label
 
         # Erstelle Checkboxen in 3 Spalten
         col = 0
@@ -184,6 +216,22 @@ class SettingsDialog:
         """Lädt die aktuellen Einstellungen in die Felder"""
         self.db_path_var.set(self.config.get_db_path())
         self.export_dir_var.set(self.config.get_export_directory())
+
+        # Lade Theme-Einstellungen
+        theme = self.config.get_theme()
+        theme_mode = self.config.get_theme_mode()
+
+        # Setze Theme-Dropdown
+        if theme == 'azure':
+            self.theme_var.set('Azure')
+        else:
+            self.theme_var.set('Standard')
+
+        # Setze Theme-Modus
+        if theme_mode == 'dark':
+            self.theme_mode_var.set('Dunkel')
+        else:
+            self.theme_mode_var.set('Hell')
 
         # Lade konfigurierte Spalten
         configured_columns = self.config.get_detail_columns()
@@ -261,6 +309,17 @@ class SettingsDialog:
         self.config.set_detail_columns(selected_columns)
         columns_changed = old_columns != self.config.get_detail_columns()
 
+        # Speichere Theme-Einstellungen
+        old_theme = self.config.get_theme()
+        old_theme_mode = self.config.get_theme_mode()
+
+        # Konvertiere Dropdown-Werte zu internen Werten
+        theme = 'azure' if self.theme_var.get() == 'Azure' else 'default'
+        theme_mode = 'dark' if self.theme_mode_var.get() == 'Dunkel' else 'light'
+
+        self.config.set_theme(theme, theme_mode)
+        theme_changed = (old_theme != theme or old_theme_mode != theme_mode)
+
         self.result = True
 
         # Dialog schließen
@@ -272,6 +331,14 @@ class SettingsDialog:
 
         if columns_changed and self.on_columns_change_callback:
             self.on_columns_change_callback()
+
+        # Informiere über Theme-Änderung
+        if theme_changed:
+            messagebox.showinfo(
+                "Neustart erforderlich",
+                "Die Theme-Einstellung wurde gespeichert.\n\n"
+                "Bitte starten Sie die Anwendung neu, damit die Änderungen wirksam werden."
+            )
 
     def _on_cancel(self):
         """Schließt den Dialog ohne zu speichern"""

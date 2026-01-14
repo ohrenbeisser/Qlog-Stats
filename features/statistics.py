@@ -122,7 +122,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'weekday': {
                 'db_method': 'get_qsos_by_weekday',
@@ -179,7 +179,7 @@ class Statistics:
                 'plot_xlabel': 'Rufzeichen',
                 'plot_ylabel': 'Anzahl QSOs',
                 'show_plot': True,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'top_days': {
                 'db_method': 'get_top_qso_days',
@@ -203,6 +203,18 @@ class Statistics:
                 'show_plot': True,
                 'on_double_click': None
             },
+            'propagation': {
+                'db_method': 'get_propagation_data',
+                'db_params': {},
+                'columns': ['datetime', 'k_index', 'a_index', 'sfi'],
+                'table_label': 'Propagation-Daten',
+                'plot_title': 'Propagation (K-Index, A-Index, SFI)',
+                'plot_xlabel': 'Datum/Zeit',
+                'plot_ylabel': None,  # Spezialfall: Zwei Y-Achsen
+                'show_plot': True,
+                'on_double_click': None,
+                'special_plot': 'propagation'  # Marker für spezielles Plot
+            },
             'callsign_search': {
                 'db_method': 'search_callsigns',
                 'db_params': {},  # wird dynamisch gefüllt
@@ -212,7 +224,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'qsl_sent': {
                 'db_method': 'get_qsl_sent',
@@ -223,7 +235,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'qsl_received': {
                 'db_method': 'get_qsl_received',
@@ -234,7 +246,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'qsl_requested': {
                 'db_method': 'get_qsl_requested',
@@ -245,7 +257,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'qsl_queued': {
                 'db_method': 'get_qsl_queued',
@@ -256,7 +268,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'lotw_received': {
                 'db_method': 'get_lotw_received',
@@ -267,7 +279,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             },
             'eqsl_received': {
                 'db_method': 'get_eqsl_received',
@@ -278,7 +290,7 @@ class Statistics:
                 'plot_xlabel': None,
                 'plot_ylabel': None,
                 'show_plot': False,
-                'on_double_click': 'qrz'
+                'on_double_click': None  # Doppelklick öffnet Detail-Dialog für Detail-Tabellen
             }
         }
 
@@ -398,17 +410,8 @@ class Statistics:
 
                     data = filtered_data
 
-            # 6. Event-Handler konfigurieren (z.B. Doppelklick für QRZ-Links)
+            # 6. Kontextmenü und Event-Handler für Detail-Tabellen
             on_double_click = None
-            if config['on_double_click'] == 'qrz':
-                on_double_click = QRZIntegration.create_callback(self.table_view.get_tree())
-
-            # 7. Tabelle mit Daten füllen
-            # Verwende display_columns für Detail-Tabellen, sonst config['columns']
-            table_columns = display_columns if display_columns else config['columns']
-            self.table_view.populate(table_columns, data, on_double_click=on_double_click)
-
-            # 7b. Aktiviere Kontextmenü für Detail-Tabellen
             if stat_type in detail_tables:
                 # Erstelle oder aktualisiere Kontextmenü
                 if not self.context_menu:
@@ -417,9 +420,16 @@ class Statistics:
                         self.db,
                         self.parent_window
                     )
+                # Doppelklick öffnet Detail-Dialog
+                on_double_click = lambda event: self.context_menu._show_details()
             else:
                 # Deaktiviere Kontextmenü für Statistik-Tabellen
                 self.context_menu = None
+
+            # 7. Tabelle mit Daten füllen
+            # Verwende display_columns für Detail-Tabellen, sonst config['columns']
+            table_columns = display_columns if display_columns else config['columns']
+            self.table_view.populate(table_columns, data, on_double_click=on_double_click)
 
             # 8. Diagramm-Anzeige steuern
             if config['show_plot']:
@@ -427,17 +437,24 @@ class Statistics:
                 if self.plot_view.parent_frame not in self.paned_window.panes():
                     self.paned_window.add(self.plot_view.parent_frame, minsize=300)
 
-                # Diagramm mit Daten aktualisieren
-                plot_limit = config.get('plot_limit', 20)  # Standard: 20 Datenpunkte
-                self.plot_view.update_plot(
-                    data,
-                    config['columns'][0],  # X-Achse (z.B. 'country')
-                    config['columns'][1],  # Y-Achse (z.B. 'count')
-                    config['plot_title'],
-                    config['plot_xlabel'],
-                    config['plot_ylabel'],
-                    limit=plot_limit
-                )
+                # Spezialfall: Propagation-Diagramm mit zwei Y-Achsen
+                if config.get('special_plot') == 'propagation':
+                    self.plot_view.update_propagation_plot(
+                        data,
+                        config['plot_title']
+                    )
+                else:
+                    # Standard-Diagramm
+                    plot_limit = config.get('plot_limit', 20)  # Standard: 20 Datenpunkte
+                    self.plot_view.update_plot(
+                        data,
+                        config['columns'][0],  # X-Achse (z.B. 'country')
+                        config['columns'][1],  # Y-Achse (z.B. 'count')
+                        config['plot_title'],
+                        config['plot_xlabel'],
+                        config['plot_ylabel'],
+                        limit=plot_limit
+                    )
             else:
                 # Diagramm verstecken (z.B. bei Sonderrufzeichen)
                 try:

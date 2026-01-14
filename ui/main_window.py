@@ -30,6 +30,7 @@ class MainWindow:
                 - 'show_callsign': Callback für Rufzeichen-Statistik
                 - 'show_top_days': Callback für Top QSO-Tage
                 - 'show_flop_days': Callback für Flop QSO-Tage
+                - 'show_propagation': Callback für Propagation-Statistik
                 - 'show_search': Callback für Rufzeichen-Suche
                 - 'show_special': Callback für Spezialcallsign
                 - 'show_qsl_sent': Callback für versendete QSL-Karten
@@ -93,6 +94,9 @@ class MainWindow:
                              command=self.callbacks.get('show_top_days'))
         stats_menu.add_command(label="Flop QSO-Tage",
                              command=self.callbacks.get('show_flop_days'))
+        stats_menu.add_separator()
+        stats_menu.add_command(label="Propagation",
+                             command=self.callbacks.get('show_propagation'))
         stats_menu.add_separator()
         stats_menu.add_command(label="QSOs nach Rufzeichen",
                              command=self.callbacks.get('show_callsign'))

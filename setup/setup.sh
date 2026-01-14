@@ -4,6 +4,9 @@
 
 set -e  # Bei Fehler abbrechen
 
+# Wechsle ins Projekt-Verzeichnis (ein Verzeichnis nach oben)
+cd "$(dirname "$0")/.." || exit 1
+
 # Farben für bessere Lesbarkeit
 RED='\033[0;31m'
 GREEN='\033[0;32m'

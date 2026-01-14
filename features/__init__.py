@@ -8,5 +8,6 @@ from .date_filter import DateFilter
 from .export_handler import ExportHandler
 from .qrz_integration import QRZIntegration
 from .context_menu import ContextMenu
+from .query_manager import QueryManager
 
-__all__ = ['Statistics', 'DateFilter', 'ExportHandler', 'QRZIntegration', 'ContextMenu']
+__all__ = ['Statistics', 'DateFilter', 'ExportHandler', 'QRZIntegration', 'ContextMenu', 'QueryManager']

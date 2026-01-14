@@ -108,6 +108,104 @@ class PlotView:
         except Exception as e:
             messagebox.showerror("Fehler", f"Fehler beim Erstellen des Diagramms:\n{str(e)}")
 
+    def update_propagation_plot(self, data, title):
+        """
+        Erstellt ein Liniendiagramm für Propagation-Daten mit zwei Y-Achsen
+
+        K-Index und A-Index werden auf der linken Y-Achse dargestellt,
+        SFI auf der rechten Y-Achse.
+
+        Args:
+            data: Liste von Dictionaries mit Propagation-Daten
+                  Format: [{'datetime': ..., 'k_index': ..., 'a_index': ..., 'sfi': ...}, ...]
+            title: Diagramm-Titel
+        """
+        if not MATPLOTLIB_AVAILABLE:
+            messagebox.showerror("Fehler",
+                               "matplotlib ist nicht installiert.\n"
+                               "Bitte installieren mit: pip install matplotlib")
+            return
+
+        if not data:
+            return
+
+        try:
+            self.create_canvas()
+
+            # Extrahiere Daten
+            from datetime import datetime
+            datetimes = []
+            k_values = []
+            a_values = []
+            sfi_values = []
+
+            for row in data:
+                try:
+                    # Parse datetime string
+                    dt_str = row.get('datetime', '')
+                    if dt_str:
+                        dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                        datetimes.append(dt)
+                        k_values.append(row.get('k_index') if row.get('k_index') is not None else None)
+                        a_values.append(row.get('a_index') if row.get('a_index') is not None else None)
+                        sfi_values.append(row.get('sfi') if row.get('sfi') is not None else None)
+                except:
+                    continue
+
+            if not datetimes:
+                return
+
+            # Linke Y-Achse (K und A Index)
+            color_k = 'tab:red'
+            color_a = 'tab:blue'
+
+            self.ax.set_xlabel('Datum/Zeit', fontsize=10)
+            self.ax.set_ylabel('K-Index / A-Index', color='black', fontsize=10)
+
+            # K-Index Linie
+            line1 = self.ax.plot(datetimes, k_values, color=color_k,
+                                linewidth=2, marker='o', markersize=4, label='K-Index')
+
+            # A-Index Linie
+            line2 = self.ax.plot(datetimes, a_values, color=color_a,
+                                linewidth=2, marker='s', markersize=4, label='A-Index')
+
+            self.ax.tick_params(axis='y', labelcolor='black')
+            self.ax.grid(True, alpha=0.3)
+
+            # Rechte Y-Achse (SFI)
+            ax2 = self.ax.twinx()
+            color_sfi = 'tab:green'
+            ax2.set_ylabel('SFI', color=color_sfi, fontsize=10)
+
+            # SFI Linie
+            line3 = ax2.plot(datetimes, sfi_values, color=color_sfi,
+                            linewidth=2, marker='^', markersize=4, label='SFI')
+
+            ax2.tick_params(axis='y', labelcolor=color_sfi)
+
+            # Titel
+            self.ax.set_title(title, fontsize=11)
+
+            # Legende kombinieren
+            lines = line1 + line2 + line3
+            labels = [l.get_label() for l in lines]
+            self.ax.legend(lines, labels, loc='upper left')
+
+            # X-Achse formatieren
+            self.figure.autofmt_xdate()
+
+            # tight_layout
+            try:
+                self.figure.tight_layout(pad=2.0)
+            except ValueError:
+                pass
+
+            self.canvas.draw()
+
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Erstellen des Propagation-Diagramms:\n{str(e)}")
+
     def hide(self):
         """Blendet das Diagramm aus"""
         self.is_visible = False

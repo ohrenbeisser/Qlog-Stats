@@ -31,7 +31,9 @@ class ContextMenu:
         """Erstellt das Kontextmenü"""
         self.menu = tk.Menu(self.tree, tearoff=0)
         self.menu.add_command(label="Details", command=self._show_details)
-        self.menu.add_command(label="Grid", command=self._open_grid)
+        self.menu.add_separator()
+        self.menu.add_command(label="QRZ.com öffnen", command=self._open_qrz)
+        self.menu.add_command(label="Grid auf Karte", command=self._open_grid)
 
     def _bind_events(self):
         """Bindet das Kontextmenü an Rechtsklick"""
@@ -98,6 +100,13 @@ class ContextMenu:
 
         # Zeige Details-Dialog
         DetailsDialog(self.parent, qso_data, callsign, self.db).show()
+
+    def _open_qrz(self):
+        """Öffnet QRZ.com für das ausgewählte Rufzeichen"""
+        callsign = self._get_selected_callsign()
+        if callsign:
+            url = f"https://www.qrz.com/db/{callsign}"
+            webbrowser.open(url)
 
     def _open_grid(self):
         """Öffnet Google Maps mit dem Grid/Locator"""
@@ -306,7 +315,7 @@ class DetailsDialog:
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # Importiere Spalten-Labels
-        from table_columns import get_column_label
+        from ui.table_columns import get_column_label
 
         # Zeige alle Felder
         row = 0
