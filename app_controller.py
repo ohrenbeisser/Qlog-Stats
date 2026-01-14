@@ -122,8 +122,8 @@ class QlogStatsApp:
         # Tabellen-View erstellen
         self.table_view = TableView(self.main_window.get_table_frame())
 
-        # Plot-View erstellen
-        self.plot_view = PlotView(self.main_window.get_plot_frame())
+        # Plot-View erstellen (mit Config für Theme-Support)
+        self.plot_view = PlotView(self.main_window.get_plot_frame(), self.config)
 
         # Export-Handler erstellen (exporter wird in _init_database() gesetzt)
         self.export_handler = ExportHandler(None)

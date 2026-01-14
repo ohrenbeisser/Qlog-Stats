@@ -145,7 +145,7 @@ class SettingsDialog:
         # Hinweis
         theme_info = ttk.Label(main_frame,
                               text="Hinweis: Änderung des Themes erfordert einen Neustart der Anwendung.",
-                              font=('TkDefaultFont', 8), foreground='gray')
+                              font=('TkDefaultFont', 8))
         theme_info.grid(row=6, column=0, sticky='w', pady=(0, 10))
 
         # Trennlinie

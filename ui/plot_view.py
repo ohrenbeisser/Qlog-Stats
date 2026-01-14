@@ -19,19 +19,59 @@ except ImportError:
 class PlotView:
     """Verwaltet die Matplotlib-Plot-Anzeige"""
 
-    def __init__(self, parent_frame):
+    def __init__(self, parent_frame, config_manager=None):
         """
         Initialisiert die Plot View
 
         Args:
             parent_frame: Tkinter Frame für das Diagramm
+            config_manager: Optional ConfigManager für Theme-Erkennung
         """
         self.parent_frame = parent_frame
+        self.config_manager = config_manager
         self.figure = None
         self.ax = None
         self.canvas = None
         self.canvas_widget = None
         self.is_visible = True
+
+        # Setze Matplotlib-Farben basierend auf Theme
+        self._apply_theme_colors()
+
+    def _apply_theme_colors(self):
+        """Passt Matplotlib-Farben an das aktuelle Theme an"""
+        if not MATPLOTLIB_AVAILABLE:
+            return
+
+        # Prüfe Theme-Modus
+        is_dark = False
+        if self.config_manager:
+            try:
+                theme_mode = self.config_manager.get_theme_mode()
+                is_dark = theme_mode == 'dark'
+            except:
+                pass
+
+        if is_dark:
+            # Dark Mode Farben
+            matplotlib.rcParams['figure.facecolor'] = '#2b2b2b'
+            matplotlib.rcParams['axes.facecolor'] = '#2b2b2b'
+            matplotlib.rcParams['axes.edgecolor'] = '#555555'
+            matplotlib.rcParams['axes.labelcolor'] = '#e0e0e0'
+            matplotlib.rcParams['xtick.color'] = '#e0e0e0'
+            matplotlib.rcParams['ytick.color'] = '#e0e0e0'
+            matplotlib.rcParams['text.color'] = '#e0e0e0'
+            matplotlib.rcParams['grid.color'] = '#404040'
+        else:
+            # Light Mode Farben
+            matplotlib.rcParams['figure.facecolor'] = 'white'
+            matplotlib.rcParams['axes.facecolor'] = 'white'
+            matplotlib.rcParams['axes.edgecolor'] = '#cccccc'
+            matplotlib.rcParams['axes.labelcolor'] = 'black'
+            matplotlib.rcParams['xtick.color'] = 'black'
+            matplotlib.rcParams['ytick.color'] = 'black'
+            matplotlib.rcParams['text.color'] = 'black'
+            matplotlib.rcParams['grid.color'] = '#e0e0e0'
 
     def create_canvas(self):
         """Erstellt oder erneuert das Matplotlib Canvas"""
@@ -141,18 +181,32 @@ class PlotView:
 
             for row in data:
                 try:
-                    # Parse datetime string
+                    # Parse datetime string (ISO-Format mit T und Z)
                     dt_str = row.get('datetime', '')
                     if dt_str:
-                        dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                        # Entferne .000Z am Ende und ersetze T mit Leerzeichen
+                        dt_str_cleaned = dt_str.replace('T', ' ').replace('Z', '').split('.')[0]
+                        dt = datetime.strptime(dt_str_cleaned, '%Y-%m-%d %H:%M:%S')
                         datetimes.append(dt)
-                        k_values.append(row.get('k_index') if row.get('k_index') is not None else None)
-                        a_values.append(row.get('a_index') if row.get('a_index') is not None else None)
-                        sfi_values.append(row.get('sfi') if row.get('sfi') is not None else None)
-                except:
+
+                        # Hole Werte (None wenn nicht vorhanden)
+                        k_val = row.get('k_index')
+                        a_val = row.get('a_index')
+                        sfi_val = row.get('sfi')
+
+                        k_values.append(float(k_val) if k_val is not None else None)
+                        a_values.append(float(a_val) if a_val is not None else None)
+                        sfi_values.append(float(sfi_val) if sfi_val is not None else None)
+                except Exception as e:
+                    # Debug: Zeige welche Zeilen übersprungen werden
+                    print(f"Fehler beim Parsen von Propagation-Daten: {e}, Zeile: {row}")
                     continue
 
             if not datetimes:
+                messagebox.showinfo("Keine Daten",
+                                  "Für den gewählten Zeitraum sind keine Propagation-Daten vorhanden.\n\n"
+                                  "Propagation-Daten (K-Index, A-Index, SFI) werden von QLog automatisch "
+                                  "beim Loggen von QSOs gespeichert, falls diese verfügbar sind.")
                 return
 
             # Linke Y-Achse (K und A Index)
@@ -164,14 +218,19 @@ class PlotView:
 
             # K-Index Linie
             line1 = self.ax.plot(datetimes, k_values, color=color_k,
-                                linewidth=2, marker='o', markersize=4, label='K-Index')
+                                linewidth=2, marker='o', markersize=5, label='K-Index',
+                                linestyle='-', markerfacecolor=color_k, markeredgewidth=0)
 
             # A-Index Linie
             line2 = self.ax.plot(datetimes, a_values, color=color_a,
-                                linewidth=2, marker='s', markersize=4, label='A-Index')
+                                linewidth=2, marker='s', markersize=5, label='A-Index',
+                                linestyle='-', markerfacecolor=color_a, markeredgewidth=0)
 
             self.ax.tick_params(axis='y', labelcolor='black')
-            self.ax.grid(True, alpha=0.3)
+            self.ax.grid(True, alpha=0.3, linestyle='--')
+
+            # Y-Achse auto-skalieren (beginne bei 0)
+            self.ax.set_ylim(bottom=0)
 
             # Rechte Y-Achse (SFI)
             ax2 = self.ax.twinx()
@@ -180,9 +239,13 @@ class PlotView:
 
             # SFI Linie
             line3 = ax2.plot(datetimes, sfi_values, color=color_sfi,
-                            linewidth=2, marker='^', markersize=4, label='SFI')
+                            linewidth=2, marker='^', markersize=5, label='SFI',
+                            linestyle='-', markerfacecolor=color_sfi, markeredgewidth=0)
 
             ax2.tick_params(axis='y', labelcolor=color_sfi)
+
+            # Y-Achse auto-skalieren (beginne bei 0)
+            ax2.set_ylim(bottom=0)
 
             # Titel
             self.ax.set_title(title, fontsize=11)

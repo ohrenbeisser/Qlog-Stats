@@ -157,15 +157,16 @@ class MainWindow:
         self.search_frame = ttk.LabelFrame(self.main_frame, text="Rufzeichen-Suche", padding="5")
         # Nicht packen - wird erst bei Bedarf eingeblendet
 
+        # Verwende tk.PanedWindow für minsize-Unterstützung, aber ohne hardcodierte Farben
         self.paned_window = tk.PanedWindow(self.main_frame, orient=tk.HORIZONTAL,
-                                          sashwidth=5, sashrelief=tk.RAISED, bg='#cccccc')
+                                          sashwidth=5, sashrelief=tk.FLAT)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
 
         self.table_frame = ttk.LabelFrame(self.paned_window, text="Tabelle", padding="5")
-        self.paned_window.add(self.table_frame, minsize=300)
+        self.paned_window.add(self.table_frame, width=400, minsize=300)
 
         self.plot_frame = ttk.LabelFrame(self.paned_window, text="Diagramm", padding="5")
-        self.paned_window.add(self.plot_frame, minsize=300)
+        self.paned_window.add(self.plot_frame, width=400, minsize=300)
 
     def get_main_frame(self):
         """Gibt den Haupt-Frame zurück"""

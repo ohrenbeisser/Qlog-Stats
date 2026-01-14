@@ -41,14 +41,16 @@ class QueryManagerDialog:
         # Info-Label
         ttk.Label(main_frame, text="Gespeicherte Abfragen:").pack(anchor=tk.W, pady=(0, 5))
 
-        # Listbox mit Scrollbar
+        # Treeview mit Scrollbar (besser für Azure Theme)
         list_frame = ttk.Frame(main_frame)
         list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
         scrollbar = ttk.Scrollbar(list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.query_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set)
+        # Verwende Treeview statt Listbox für besseres Theme-Support
+        self.query_listbox = ttk.Treeview(list_frame, yscrollcommand=scrollbar.set,
+                                         columns=('name',), show='tree', selectmode='browse')
         self.query_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=self.query_listbox.yview)
 
@@ -68,28 +70,34 @@ class QueryManagerDialog:
 
     def _load_queries(self):
         """Lädt alle gespeicherten Abfragen in die Liste"""
-        self.query_listbox.delete(0, tk.END)
+        # Lösche alle Einträge
+        for item in self.query_listbox.get_children():
+            self.query_listbox.delete(item)
+
         self.queries = self.query_manager.load_queries()
 
         if not self.queries:
-            self.query_listbox.insert(tk.END, "(Keine Abfragen gespeichert)")
+            self.query_listbox.insert('', tk.END, text="(Keine Abfragen gespeichert)")
             return
 
-        for query in self.queries:
+        for i, query in enumerate(self.queries):
             name = query.get('name', 'Unbenannt')
-            self.query_listbox.insert(tk.END, name)
+            self.query_listbox.insert('', tk.END, iid=str(i), text=name)
 
     def _get_selected_query(self):
         """Gibt die aktuell ausgewählte Abfrage zurück"""
-        selection = self.query_listbox.curselection()
+        selection = self.query_listbox.selection()
         if not selection:
             return None
 
-        index = selection[0]
-        if index >= len(self.queries):
+        # Hole den Index aus der IID
+        try:
+            index = int(selection[0])
+            if index >= len(self.queries):
+                return None
+            return self.queries[index]
+        except (ValueError, IndexError):
             return None
-
-        return self.queries[index]
 
     def _edit_query(self):
         """Bearbeitet die ausgewählte Abfrage"""

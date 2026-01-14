@@ -2,6 +2,9 @@
 .venv/
 env/
 ENV/
+build/
+dist/
+.claude/
 
 # Python
 __pycache__/
