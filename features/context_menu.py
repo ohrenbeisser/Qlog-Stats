@@ -29,7 +29,9 @@ class ContextMenu:
 
     def _create_menu(self):
         """Erstellt das Kontextmenü"""
-        self.menu = tk.Menu(self.tree, tearoff=0)
+        # Größere Schrift für bessere Lesbarkeit
+        menu_font = ('TkDefaultFont', 10)
+        self.menu = tk.Menu(self.tree, tearoff=0, font=menu_font)
         self.menu.add_command(label="Details", command=self._show_details)
         self.menu.add_separator()
         self.menu.add_command(label="QRZ.com öffnen", command=self._open_qrz)
@@ -278,6 +280,9 @@ class DetailsDialog:
         self.dialog.geometry("700x600")
         self.dialog.resizable(True, True)
 
+        # Setze weißen Hintergrund
+        self.dialog.configure(bg='white')
+
         # Zentriere das Fenster
         self.dialog.transient(self.parent)
 
@@ -291,8 +296,8 @@ class DetailsDialog:
 
     def _create_widgets(self):
         """Erstellt die Widgets des Dialogs"""
-        # Canvas für Scrolling
-        canvas = tk.Canvas(self.dialog, borderwidth=0, highlightthickness=0)
+        # Canvas für Scrolling - mit weißem Hintergrund für saubere Optik
+        canvas = tk.Canvas(self.dialog, borderwidth=0, highlightthickness=0, bg='white')
         scrollbar = ttk.Scrollbar(self.dialog, orient="vertical", command=canvas.yview)
 
         # Scrollbares Frame

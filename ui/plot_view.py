@@ -38,19 +38,22 @@ class PlotView:
         # Setze Matplotlib-Farben basierend auf Theme
         self._apply_theme_colors()
 
+    def _is_dark_mode(self):
+        """Prüft ob Dark Mode aktiv ist"""
+        if self.config_manager:
+            try:
+                return self.config_manager.get_theme_mode() == 'dark'
+            except:
+                pass
+        return False
+
     def _apply_theme_colors(self):
         """Passt Matplotlib-Farben an das aktuelle Theme an"""
         if not MATPLOTLIB_AVAILABLE:
             return
 
         # Prüfe Theme-Modus
-        is_dark = False
-        if self.config_manager:
-            try:
-                theme_mode = self.config_manager.get_theme_mode()
-                is_dark = theme_mode == 'dark'
-            except:
-                pass
+        is_dark = self._is_dark_mode()
 
         if is_dark:
             # Dark Mode Farben
@@ -126,7 +129,9 @@ class PlotView:
             labels = [str(row[x_key]) for row in data[:plot_limit]]
             values = [row[y_key] for row in data[:plot_limit]]
 
-            self.ax.bar(labels, values, color='steelblue')
+            # Azure-kompatible Balkenfarbe
+            bar_color = '#007acc' if not self._is_dark_mode() else '#5eb3f6'
+            self.ax.bar(labels, values, color=bar_color)
             self.ax.set_xlabel(xlabel, fontsize=10)
             self.ax.set_ylabel(ylabel, fontsize=10)
             self.ax.set_title(title, fontsize=11)

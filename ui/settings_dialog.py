@@ -45,6 +45,10 @@ class SettingsDialog:
         self.dialog.geometry("700x650")
         self.dialog.resizable(True, True)
 
+        # Setze Theme-Hintergrundfarbe
+        bg_color = self._get_bg_color()
+        self.dialog.configure(bg=bg_color)
+
         # Zentriere das Fenster auf dem Hauptfenster
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
@@ -57,10 +61,18 @@ class SettingsDialog:
 
         return self.result
 
+    def _get_bg_color(self):
+        """Gibt die Hintergrundfarbe basierend auf dem Theme zurück"""
+        theme_mode = self.config.get_theme_mode()
+        if theme_mode == 'dark':
+            return '#2b2b2b'  # Dunkel für Dark Mode
+        return 'white'  # Hell für Light Mode
+
     def _create_widgets(self):
         """Erstellt die Widgets des Dialogs"""
-        # Canvas für Scrolling
-        canvas = tk.Canvas(self.dialog, borderwidth=0, highlightthickness=0)
+        # Canvas für Scrolling - mit Theme-Hintergrund
+        bg_color = self._get_bg_color()
+        canvas = tk.Canvas(self.dialog, borderwidth=0, highlightthickness=0, bg=bg_color)
         scrollbar = ttk.Scrollbar(self.dialog, orient="vertical", command=canvas.yview)
 
         # Scrollbares Frame

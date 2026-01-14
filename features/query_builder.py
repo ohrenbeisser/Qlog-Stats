@@ -66,6 +66,7 @@ class QueryBuilderDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Neue Abfrage" if not existing_query else "Abfrage bearbeiten")
         self.dialog.geometry("900x600")
+        self.dialog.configure(bg='white')
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
@@ -94,7 +95,7 @@ class QueryBuilderDialog:
         conditions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
         # Scrollbarer Frame für Bedingungen
-        canvas = tk.Canvas(conditions_frame, height=250)
+        canvas = tk.Canvas(conditions_frame, height=250, bg='white', borderwidth=0, highlightthickness=0)
         scrollbar = ttk.Scrollbar(conditions_frame, orient="vertical", command=canvas.yview)
         self.conditions_container = ttk.Frame(canvas)
 
@@ -270,6 +271,7 @@ class QueryBuilderDialog:
         preview_window = tk.Toplevel(self.dialog)
         preview_window.title("SQL Vorschau / Bearbeiten")
         preview_window.geometry("700x400")
+        preview_window.configure(bg='white')
         preview_window.transient(self.dialog)
 
         # Info-Label
@@ -286,7 +288,9 @@ class QueryBuilderDialog:
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        text = tk.Text(text_frame, wrap=tk.WORD, height=10, yscrollcommand=scrollbar.set)
+        text = tk.Text(text_frame, wrap=tk.WORD, height=10, yscrollcommand=scrollbar.set,
+                      bg='white', fg='black', insertbackground='black',
+                      borderwidth=1, relief=tk.SOLID)
         text.pack(fill=tk.BOTH, expand=True)
         scrollbar.config(command=text.yview)
 

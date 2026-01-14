@@ -59,10 +59,13 @@ class MainWindow:
 
     def _create_menu(self):
         """Erstellt die Menüleiste"""
-        menubar = tk.Menu(self.root)
+        # Konfiguriere Menü-Font für bessere Lesbarkeit und mehr Abstand
+        menu_font = ('TkDefaultFont', 10)
+
+        menubar = tk.Menu(self.root, font=menu_font)
         self.root.config(menu=menubar)
 
-        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Datei", menu=file_menu)
         file_menu.add_command(label="Einstellungen",
                             command=self.callbacks.get('show_settings'))
@@ -70,7 +73,7 @@ class MainWindow:
         file_menu.add_command(label="Beenden",
                             command=self.callbacks.get('quit'))
 
-        stats_menu = tk.Menu(menubar, tearoff=0)
+        stats_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Statistik", menu=stats_menu)
         stats_menu.add_command(label="QSOs nach Ländern",
                              command=self.callbacks.get('show_country'))
@@ -101,14 +104,14 @@ class MainWindow:
         stats_menu.add_command(label="QSOs nach Rufzeichen",
                              command=self.callbacks.get('show_callsign'))
 
-        callsign_menu = tk.Menu(menubar, tearoff=0)
+        callsign_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Rufzeichen", menu=callsign_menu)
         callsign_menu.add_command(label="Suche",
                                command=self.callbacks.get('show_search'))
         callsign_menu.add_command(label="Spezialcallsign",
                                command=self.callbacks.get('show_special'))
 
-        qsl_menu = tk.Menu(menubar, tearoff=0)
+        qsl_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="QSL", menu=qsl_menu)
         qsl_menu.add_command(label="Karte versendet",
                             command=self.callbacks.get('show_qsl_sent'))
@@ -125,7 +128,7 @@ class MainWindow:
                             command=self.callbacks.get('show_eqsl_received'))
 
         # Abfragen-Menü
-        self.queries_menu = tk.Menu(menubar, tearoff=0)
+        self.queries_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Abfragen", menu=self.queries_menu)
         self.queries_menu.add_command(label="Neue Abfrage",
                                      command=self.callbacks.get('new_query'))
@@ -134,14 +137,14 @@ class MainWindow:
         self.queries_menu.add_separator()
         # Gespeicherte Abfragen werden hier dynamisch hinzugefügt
 
-        export_menu = tk.Menu(menubar, tearoff=0)
+        export_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Export", menu=export_menu)
         export_menu.add_command(label="Als CSV exportieren",
                               command=self.callbacks.get('export_csv'))
         export_menu.add_command(label="Als TXT exportieren",
                               command=self.callbacks.get('export_txt'))
 
-        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu = tk.Menu(menubar, tearoff=0, font=menu_font)
         menubar.add_cascade(label="Hilfe", menu=help_menu)
         help_menu.add_command(label="Über",
                             command=self.callbacks.get('show_about'))
@@ -157,9 +160,10 @@ class MainWindow:
         self.search_frame = ttk.LabelFrame(self.main_frame, text="Rufzeichen-Suche", padding="5")
         # Nicht packen - wird erst bei Bedarf eingeblendet
 
-        # Verwende tk.PanedWindow für minsize-Unterstützung, aber ohne hardcodierte Farben
+        # Verwende tk.PanedWindow für minsize-Unterstützung mit weißem Hintergrund
         self.paned_window = tk.PanedWindow(self.main_frame, orient=tk.HORIZONTAL,
-                                          sashwidth=5, sashrelief=tk.FLAT)
+                                          sashwidth=5, sashrelief=tk.FLAT,
+                                          bg='white', bd=0)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
 
         self.table_frame = ttk.LabelFrame(self.paned_window, text="Tabelle", padding="5")

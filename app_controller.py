@@ -80,6 +80,26 @@ class QlogStatsApp:
         self._setup_ui()
         self._init_database()
 
+    def _force_update_styles(self):
+        """Erzwingt ein Update der TTK-Styles (nach UI-Erstellung)"""
+        theme = self.config.get_theme()
+        if theme == 'azure':
+            from tkinter import ttk
+            theme_mode = self.config.get_theme_mode()
+
+            if theme_mode == 'dark':
+                bg_color = '#2b2b2b'
+                fg_color = '#e0e0e0'
+            else:
+                bg_color = '#ffffff'
+                fg_color = '#000000'
+
+            style = ttk.Style()
+            style.configure('TFrame', background=bg_color)
+            style.configure('TLabelframe', background=bg_color, borderwidth=1)
+            style.configure('TLabelframe.Label', background=bg_color, foreground=fg_color)
+            style.configure('TLabel', background=bg_color, foreground=fg_color)
+
     def _setup_ui(self):
         """Erstellt die Benutzeroberfläche durch Orchestrierung der Module"""
         # Callbacks für das Hauptfenster
@@ -150,6 +170,9 @@ class QlogStatsApp:
 
         # Such-Callback verbinden
         self.date_filter.search_callback = self._perform_callsign_search
+
+        # Erzwinge Style-Update nach UI-Erstellung
+        self._force_update_styles()
 
     def _init_database(self):
         """Initialisiert die Datenbankverbindung"""
@@ -352,6 +375,7 @@ class QlogStatsApp:
         about_window.title("Über Qlog-Stats")
         about_window.geometry("500x350")
         about_window.resizable(False, False)
+        about_window.configure(bg='white')
 
         # Zentriere das Fenster
         about_window.transient(self.root)
@@ -513,10 +537,19 @@ class QlogStatsApp:
         theme = self.config.get_theme()
         theme_mode = self.config.get_theme_mode()
 
+        # Bestimme Farben basierend auf Theme-Modus
+        if theme_mode == 'dark':
+            bg_color = '#2b2b2b'
+            fg_color = '#e0e0e0'
+        else:
+            bg_color = '#ffffff'
+            fg_color = '#000000'
+
         if theme == 'azure':
             try:
                 # Azure Theme lädt .tcl Dateien
                 import os
+                from tkinter import ttk
                 theme_dir = os.path.join(os.path.dirname(__file__), 'themes')
 
                 if theme_mode == 'dark':
@@ -529,12 +562,45 @@ class QlogStatsApp:
                 if os.path.exists(theme_file):
                     self.root.tk.call('source', theme_file)
                     self.root.tk.call('ttk::style', 'theme', 'use', theme_name)
+
+                    # KRITISCH: Setze Root-Hintergrund explizit
+                    self.root.configure(bg=bg_color)
+
+                    # Konfiguriere TTK-Styles explizit
+                    style = ttk.Style()
+
+                    # Frame und LabelFrame Hintergründe
+                    style.configure('TFrame', background=bg_color)
+                    style.configure('TLabelframe', background=bg_color, borderwidth=1)
+                    style.configure('TLabelframe.Label', background=bg_color, foreground=fg_color)
+
+                    # WICHTIG: Auch normale Labels konfigurieren
+                    style.configure('TLabel', background=bg_color, foreground=fg_color)
+
+                    # Weitere Widgets
+                    style.configure('TButton', background=bg_color)
+                    style.configure('TCheckbutton', background=bg_color, foreground=fg_color)
+                    style.configure('TRadiobutton', background=bg_color, foreground=fg_color)
+
+                    # Setze auch die Map für verschiedene Zustände
+                    style.map('TLabel',
+                             background=[('disabled', bg_color), ('active', bg_color)],
+                             foreground=[('disabled', '#999999'), ('active', fg_color)])
+
+                    style.map('TLabelframe.Label',
+                             background=[('disabled', bg_color), ('active', bg_color)],
+                             foreground=[('disabled', '#999999'), ('active', fg_color)])
                 else:
                     print(f"Warnung: Azure Theme-Datei nicht gefunden: {theme_file}")
                     print("Verwende Standard-Theme.")
+                    self.root.configure(bg=bg_color)
             except Exception as e:
                 print(f"Fehler beim Laden des Azure Themes: {e}")
                 print("Verwende Standard-Theme.")
+                self.root.configure(bg=bg_color)
+        else:
+            # Standard-Theme
+            self.root.configure(bg=bg_color)
 
     def run(self):
         """Startet die Anwendung"""

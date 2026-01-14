@@ -27,6 +27,7 @@ class QueryManagerDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Abfragen verwalten")
         self.dialog.geometry("600x400")
+        self.dialog.configure(bg='white')
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
